@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DevLab - Lab Workspace</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-tint": "#a3a6ff",
+              "surface-container": "#11192e",
+              "on-background": "#dfe4fe",
+              "primary-dim": "#6063ee",
+              "tertiary-fixed-dim": "#e79400",
+              "secondary-fixed": "#69f6b8",
+              "tertiary": "#ffb148",
+              "on-tertiary-fixed-variant": "#563400",
+              "on-secondary-fixed": "#00452d",
+              "primary-container": "#9396ff",
+              "secondary": "#69f6b8",
+              "secondary-fixed-dim": "#58e7ab",
+              "surface-container-high": "#171f36",
+              "on-primary-fixed-variant": "#0e009d",
+              "tertiary-container": "#f8a010",
+              "outline-variant": "#41475b",
+              "tertiary-dim": "#e79400",
+              "inverse-on-surface": "#4f5469",
+              "error-dim": "#d73357",
+              "on-primary-container": "#0a0081",
+              "on-primary": "#0f00a4",
+              "surface-dim": "#070d1f",
+              "primary-fixed": "#9396ff",
+              "surface-container-low": "#0c1326",
+              "primary": "#a3a6ff",
+              "on-surface-variant": "#a5aac2",
+              "inverse-surface": "#faf8ff",
+              "inverse-primary": "#494bd7",
+              "on-tertiary-fixed": "#2a1700",
+              "secondary-container": "#006c49",
+              "on-error-container": "#ffb2b9",
+              "outline": "#6f758b",
+              "surface-container-highest": "#1c253e",
+              "error-container": "#a70138",
+              "on-tertiary": "#573500",
+              "background": "#070d1f",
+              "on-secondary-fixed-variant": "#006544",
+              "on-secondary-container": "#e1ffec",
+              "surface": "#070d1f",
+              "error": "#ff6e84",
+              "on-tertiary-container": "#4a2c00",
+              "on-error": "#490013",
+              "secondary-dim": "#58e7ab",
+              "on-secondary": "#005a3c",
+              "tertiary-fixed": "#f8a010",
+              "surface-container-lowest": "#000000",
+              "primary-fixed-dim": "#8387ff",
+              "on-primary-fixed": "#000000",
+              "surface-bright": "#222b47",
+              "on-surface": "#dfe4fe",
+              "surface-variant": "#1c253e"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"],
+              "mono": ["JetBrains Mono"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            font-size: 20px;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0c1326;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #41475b;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary/30">
+<!-- TopNavBar (Shared Component) -->
+<header class="flex justify-between items-center w-full px-6 h-16 bg-[#070d1f] docked full-width top-0 z-50 shadow-[0_0_32px_0_rgba(0,0,0,0.08)] font-['Inter'] antialiased text-sm">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tight text-[#dfe4fe]">DevLab</span>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-[#a5aac2] hover:text-[#dfe4fe] transition-colors duration-200" href="#">Dashboard</a>
+<a class="text-[#a3a6ff] border-b-2 border-[#a3a6ff] pb-1 transition-colors duration-200" href="#">Labs</a>
+<a class="text-[#a5aac2] hover:text-[#dfe4fe] transition-colors duration-200" href="#">Resources</a>
+<a class="text-[#a5aac2] hover:text-[#dfe4fe] transition-colors duration-200" href="#">Admin</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
+<input class="bg-surface-container-high border-none rounded-lg pl-10 pr-4 py-1.5 text-xs w-64 focus:ring-1 focus:ring-primary" placeholder="Search resources..." type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-[#a5aac2] hover:bg-[#1c253e] rounded transition-colors duration-200 active:scale-95">
+<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
+</button>
+<button class="p-2 text-[#a5aac2] hover:bg-[#1c253e] rounded transition-colors duration-200 active:scale-95">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-[#a5aac2] hover:bg-[#1c253e] rounded transition-colors duration-200 active:scale-95">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</div>
+<button class="bg-gradient-to-v from-primary to-primary-dim text-on-primary px-4 py-2 rounded-lg font-semibold text-xs transition-all active:scale-95">
+                Deploy Container
+            </button>
+<div class="h-8 w-8 rounded-full overflow-hidden border border-outline-variant/30">
+<img class="h-full w-full object-cover" data-alt="User avatar profile picture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgOQjPloEdpAI8bTqRfs3aBIqgeOsJ8bh0F8OvtVV5Wp0kLS3gtNtvvZLwX35L03WJ0RKAEdlQfzh1cUbXwUDbGrT4pzP3QopfftM9Rb3oVpasUyUwd6Ur3GcYWzdqMCa4HcHOQaoArMpFN5GDwhrf5kPQagynE3kiJYKPHWbFMn6hDWvWXQrz2khqo8I0Lp4y6OzboqGQWmcMtQDF8vmB2zxsNbdegi3J1SQlu2PwYqy_11yM9E2RaqBCSJU-Bo6cr3QS5e8kZ-Y"/>
+</div>
+</div>
+</header>
+<main class="flex h-[calc(100vh-64px)] w-full overflow-hidden">
+<!-- Left Pane: Lab Instructions -->
+<aside class="w-1/3 min-w-[320px] max-w-lg bg-surface-container-low border-r border-outline-variant/20 flex flex-col">
+<div class="p-6 border-b border-outline-variant/10">
+<div class="flex items-center gap-2 text-xs font-mono text-primary mb-2 uppercase tracking-widest">
+<span class="material-symbols-outlined text-sm" data-icon="menu_book">menu_book</span>
+                    Project: Docker Networking
+                </div>
+<h1 class="text-xl font-bold text-on-surface leading-tight">Lab 01: Nginx Configuration</h1>
+</div>
+<div class="flex-1 overflow-y-auto custom-scrollbar p-6">
+<!-- Markdown Content Styled Section -->
+<article class="prose prose-invert max-w-none text-sm leading-relaxed text-on-surface-variant">
+<h3 class="text-on-surface font-semibold text-base mt-0">Overview</h3>
+<p>In this lab, you will deploy a high-performance Nginx container and configure a custom static landing page. You'll learn how to map volumes and expose specific ports to the host machine.</p>
+<div class="my-6 p-4 bg-surface-container rounded border-l-4 border-primary/40 italic">
+                        "Containerization is not just about isolation, but about reproducible environments."
+                    </div>
+<h3 class="text-on-surface font-semibold text-base">Steps</h3>
+<div class="space-y-4 mt-4">
+<div class="flex items-start gap-3 p-3 rounded-lg bg-surface-container-high/50 hover:bg-surface-container-high transition-colors group">
+<input class="mt-1 w-4 h-4 rounded-sm bg-surface-container border-outline text-secondary focus:ring-secondary/20" type="checkbox"/>
+<div class="text-xs">
+<span class="block font-medium text-on-surface group-hover:text-primary transition-colors">1. Pull the official Nginx image</span>
+<code class="block mt-1 bg-surface-container-lowest p-2 rounded font-mono text-secondary-fixed opacity-80">docker pull nginx:latest</code>
+</div>
+</div>
+<div class="flex items-start gap-3 p-3 rounded-lg bg-surface-container-high/50 hover:bg-surface-container-high transition-colors group">
+<input class="mt-1 w-4 h-4 rounded-sm bg-surface-container border-outline text-secondary focus:ring-secondary/20" type="checkbox"/>
+<div class="text-xs">
+<span class="block font-medium text-on-surface">2. Create a local content directory</span>
+<p class="mt-1 text-on-surface-variant/70">Create a directory named <code class="text-primary-dim">html</code> in your home directory.</p>
+</div>
+</div>
+<div class="flex items-start gap-3 p-3 rounded-lg bg-surface-container-high/50 hover:bg-surface-container-high transition-colors group">
+<input class="mt-1 w-4 h-4 rounded-sm bg-surface-container border-outline text-secondary focus:ring-secondary/20" type="checkbox"/>
+<div class="text-xs">
+<span class="block font-medium text-on-surface">3. Run the container with Volume Mapping</span>
+<code class="block mt-1 bg-surface-container-lowest p-2 rounded font-mono text-secondary-fixed opacity-80">docker run -d -p 8080:80 --name my-web -v ~/html:/usr/share/nginx/html nginx</code>
+</div>
+</div>
+<div class="flex items-start gap-3 p-3 rounded-lg bg-surface-container-high/50 hover:bg-surface-container-high transition-colors group">
+<input class="mt-1 w-4 h-4 rounded-sm bg-surface-container border-outline text-secondary focus:ring-secondary/20" type="checkbox"/>
+<div class="text-xs">
+<span class="block font-medium text-on-surface">4. Verify accessibility</span>
+<p class="mt-1 text-on-surface-variant/70">Access the service via <code class="text-primary-dim">localhost:8080</code> and confirm your custom index.html is active.</p>
+</div>
+</div>
+</div>
+</article>
+</div>
+<div class="p-6 bg-surface-container-low border-t border-outline-variant/10 flex flex-col gap-3">
+<div class="flex justify-between items-center mb-1">
+<span class="text-[10px] font-mono uppercase tracking-tighter text-on-surface-variant">Progress: 25%</span>
+<span class="text-[10px] font-mono text-primary">1 of 4 completed</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-1/4"></div>
+</div>
+<button class="mt-2 w-full bg-gradient-to-r from-primary to-primary-dim text-on-primary py-2.5 rounded font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/10 active:scale-[0.98] transition-all">
+                    Submit Lab
+                </button>
+<button class="w-full bg-surface-container-high text-on-surface-variant py-2 rounded font-medium text-xs border border-outline-variant/20 hover:text-on-surface transition-colors">
+                    Ask AI Assistant
+                </button>
+</div>
+</aside>
+<!-- Right Pane: Interactive Terminal/Desktop Area -->
+<section class="flex-1 flex flex-col bg-surface-container-lowest relative">
+<!-- Workspace Tab Bar -->
+<div class="h-10 bg-surface-container border-b border-outline-variant/10 flex items-center px-4 gap-1">
+<button class="flex items-center gap-2 px-4 h-full bg-surface-container-lowest text-primary border-t-2 border-primary text-[11px] font-mono tracking-wide">
+<span class="material-symbols-outlined text-xs" data-icon="terminal">terminal</span>
+                    TERMINAL
+                    <span class="material-symbols-outlined text-[10px] ml-2 opacity-50" data-icon="close">close</span>
+</button>
+<button class="flex items-center gap-2 px-4 h-full text-on-surface-variant hover:bg-surface-container-high transition-colors text-[11px] font-mono tracking-wide">
+<span class="material-symbols-outlined text-xs" data-icon="monitor">monitor</span>
+                    REMOTE DESKTOP
+                    <span class="material-symbols-outlined text-[10px] ml-2 opacity-20" data-icon="close">close</span>
+</button>
+<div class="flex-1"></div>
+<div class="flex items-center gap-4 text-on-surface-variant">
+<div class="flex items-center gap-1.5 px-2 py-0.5 rounded bg-secondary/10 text-secondary text-[10px] font-mono border border-secondary/20">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+                        CONNECTED
+                    </div>
+<button class="hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="help">help</span>
+</button>
+<button class="hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="fullscreen">fullscreen</span>
+</button>
+</div>
+</div>
+<!-- Terminal Area (Active) -->
+<div class="flex-1 p-4 font-mono text-[13px] leading-relaxed custom-scrollbar overflow-y-auto bg-black selection:bg-primary/40">
+<div class="flex flex-col gap-1">
+<div class="text-on-surface-variant opacity-60">Connected to dev-env-01 via SSH-RSA-4096...</div>
+<div class="text-on-surface-variant opacity-60">Welcome to DevLab v2.4.0-stable (GNU/Linux 5.15.0-generic x86_64)</div>
+<div class="mt-2 text-secondary-fixed">user@devlab:~$ <span class="text-on-surface">docker ps</span></div>
+<div class="grid grid-cols-6 text-[11px] text-on-surface-variant opacity-80 mt-1 border-b border-outline-variant/10 pb-1">
+<span>CONTAINER ID</span>
+<span>IMAGE</span>
+<span>COMMAND</span>
+<span>CREATED</span>
+<span>STATUS</span>
+<span>PORTS</span>
+</div>
+<div class="grid grid-cols-6 text-[11px] text-on-surface-variant/60 py-1 italic">
+<span>(Empty)</span>
+</div>
+<div class="mt-4 text-secondary-fixed">user@devlab:~$ <span class="text-on-surface">ls -la</span></div>
+<div class="flex flex-col gap-0.5 mt-1 text-on-surface-variant/90">
+<span>drwxr-xr-x  2 user user 4096 Oct 12 14:22 .</span>
+<span>drwxr-xr-x 18 user user 4096 Oct 12 14:10 ..</span>
+<span>-rw-r--r--  1 user user  220 Oct 12 14:00 .bash_logout</span>
+<span>-rw-r--r--  1 user user 3771 Oct 12 14:00 .bashrc</span>
+</div>
+<div class="mt-4 text-secondary-fixed">user@devlab:~$ <span class="text-on-surface animate-pulse">█</span></div>
+</div>
+</div>
+<!-- Remote Desktop (Hidden Placeholder Simulation) -->
+<div class="absolute inset-x-0 bottom-0 h-0 overflow-hidden bg-surface-container-lowest">
+<div class="relative w-full h-full bg-surface-container-low flex items-center justify-center">
+<img class="w-full h-full object-cover blur-2xl opacity-20" data-alt="Abstract code and terminal patterns blurred" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAieGPHn1rSnRIchfcs-MClOaui0VPcSiE8Iv0a8Cfj7sPOqmNHvUauktsR0jAaLt_hIvR_lm8JMKsil-dsYmxVM0JCogMWGqCo7rHV3y5nLheSt2lFYt5xuKA8wnH80kNdmi2IIK-frjSjeKLeUNWPTFNiePZjrJI32AXi5w7kQvz_8JH9X2J6pneY7M1fmdwazy4XuzpwZqFmJOkusLR0mNlHPwr3y9RpDOI1RQeMENcAFPXQzMSOj0cmD4PgFLTEf4jg4te47Sw"/>
+<div class="absolute flex flex-col items-center gap-4">
+<span class="material-symbols-outlined text-6xl text-primary opacity-30" data-icon="desktop_windows">desktop_windows</span>
+<p class="text-on-surface-variant font-mono text-sm">VNC SESSION INACTIVE</p>
+</div>
+</div>
+</div>
+<!-- Terminal Toolbar / Status -->
+<div class="h-8 bg-primary-container flex items-center px-4 justify-between select-none">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1.5 text-[10px] font-bold text-on-primary-container">
+<span class="material-symbols-outlined text-[14px]" data-icon="dns">dns</span>
+                        CONTAINER: my-lab-instance
+                    </div>
+<div class="h-3 w-[1px] bg-on-primary-container/20"></div>
+<div class="flex items-center gap-1.5 text-[10px] font-bold text-on-primary-container">
+<span class="material-symbols-outlined text-[14px]" data-icon="memory">memory</span>
+                        CPU: 12%
+                    </div>
+<div class="flex items-center gap-1.5 text-[10px] font-bold text-on-primary-container">
+<span class="material-symbols-outlined text-[14px]" data-icon="equalizer">equalizer</span>
+                        RAM: 452MB / 2GB
+                    </div>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-[10px] font-bold text-on-primary-container uppercase tracking-tighter">Region: US-EAST-1</span>
+<span class="material-symbols-outlined text-[14px] text-on-primary-container" data-icon="wifi">wifi</span>
+</div>
+</div>
+</section>
+</main>
+<!-- Contextual FAB (Hidden as per suppression rules for focused tasks, but added for Lab Restart if needed) -->
+<!-- Suppressed on Task-Focused Details screens -->
+</body></html>

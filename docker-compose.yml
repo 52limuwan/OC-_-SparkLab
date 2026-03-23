@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: docker-lab-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: docker_lab
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lab-network
+
+  backend:
+    build: ./backend
+    container_name: docker-lab-backend
+    ports:
+      - "4000:4000"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: docker_lab
+      JWT_SECRET: your-secret-key-change-in-production
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - postgres
+    networks:
+      - lab-network
+
+  frontend:
+    build: ./frontend
+    container_name: docker-lab-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - lab-network
+
+volumes:
+  postgres_data:
+
+networks:
+  lab-network:
+    driver: bridge

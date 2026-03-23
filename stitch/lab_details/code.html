@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary-fixed-dim": "#8387ff",
+            "tertiary-fixed": "#f8a010",
+            "tertiary-dim": "#e79400",
+            "error-container": "#a70138",
+            "surface-container-highest": "#1c253e",
+            "secondary-fixed-dim": "#58e7ab",
+            "surface-container-low": "#0c1326",
+            "primary-dim": "#6063ee",
+            "on-surface-variant": "#a5aac2",
+            "outline-variant": "#41475b",
+            "inverse-primary": "#494bd7",
+            "surface-bright": "#222b47",
+            "inverse-on-surface": "#4f5469",
+            "on-primary-fixed": "#000000",
+            "primary": "#a3a6ff",
+            "background": "#070d1f",
+            "surface-container-high": "#171f36",
+            "surface-container": "#11192e",
+            "tertiary": "#ffb148",
+            "surface-dim": "#070d1f",
+            "secondary-dim": "#58e7ab",
+            "tertiary-container": "#f8a010",
+            "outline": "#6f758b",
+            "on-error": "#490013",
+            "on-tertiary": "#573500",
+            "secondary-container": "#006c49",
+            "on-secondary-fixed-variant": "#006544",
+            "on-secondary": "#005a3c",
+            "surface": "#070d1f",
+            "secondary-fixed": "#69f6b8",
+            "on-primary-container": "#0a0081",
+            "surface-variant": "#1c253e",
+            "inverse-surface": "#faf8ff",
+            "secondary": "#69f6b8",
+            "surface-container-lowest": "#000000",
+            "primary-fixed": "#9396ff",
+            "on-primary-fixed-variant": "#0e009d",
+            "on-primary": "#0f00a4",
+            "on-surface": "#dfe4fe",
+            "surface-tint": "#a3a6ff",
+            "on-tertiary-container": "#4a2c00",
+            "on-secondary-fixed": "#00452d",
+            "on-background": "#dfe4fe",
+            "tertiary-fixed-dim": "#e79400",
+            "on-error-container": "#ffb2b9",
+            "primary-container": "#9396ff",
+            "on-tertiary-fixed": "#2a1700",
+            "on-secondary-container": "#e1ffec",
+            "error-dim": "#d73357",
+            "on-tertiary-fixed-variant": "#563400",
+            "error": "#ff6e84"
+          },
+          fontFamily: {
+            "headline": ["Inter"],
+            "body": ["Inter"],
+            "label": ["Inter"],
+            "mono": ["JetBrains Mono"]
+          },
+          borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    body {
+      background-color: #070d1f;
+      color: #dfe4fe;
+    }
+  </style>
+</head>
+<body class="font-body selection:bg-primary selection:text-on-primary">
+<nav class="bg-[#070d1f] text-[#a3a6ff] font-sans text-[0.875rem] font-normal docked full-width top-0 z-50 flex justify-between items-center w-full px-6 h-16 fixed">
+<div class="flex items-center gap-8">
+<div class="text-xl font-bold tracking-tighter text-[#dfe4fe]">DevLab</div>
+<div class="hidden md:flex items-center gap-6">
+<a class="text-[#a5aac2] hover:text-[#dfe4fe] transition-colors active:scale-95 duration-150" href="#">Explore</a>
+<a class="text-[#a3a6ff] border-b-2 border-[#a3a6ff] pb-1 hover:text-[#dfe4fe] transition-colors active:scale-95 duration-150" href="#">Docs</a>
+<a class="text-[#a5aac2] hover:text-[#dfe4fe] transition-colors active:scale-95 duration-150" href="#">Status</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden md:flex items-center gap-4 mr-4">
+<button class="material-symbols-outlined text-[#a5aac2] hover:text-[#dfe4fe]">terminal</button>
+<button class="material-symbols-outlined text-[#a5aac2] hover:text-[#dfe4fe]">notifications</button>
+<button class="material-symbols-outlined text-[#a5aac2] hover:text-[#dfe4fe]">settings</button>
+</div>
+<button class="bg-primary hover:bg-primary-dim text-on-primary px-4 py-2 font-bold rounded transition-all active:scale-95">Deploy Lab</button>
+<img alt="User avatar" class="w-8 h-8 rounded-full border border-outline-variant/30 ml-2" data-alt="User profile avatar icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4MzMMHaxq33cw7T5aypbQExk7tc5zI7PzYvpKCoDFjJpFhmolFfGyU6wK6iN1riMOg6rnMiLh1yBvxMKQsym9fWE89Ghbjck-pkdP7WNAMuMDNUhvXrNBEpHEUOLZbvTvNDjGC9M-H5WbTZwGMrveAxhfFCpgbUmFVfPcbMjM3VyZeSCSMYDSzD121WQD56rmjtlOcWSh7TsAidptlAKXu8fGKNVZg-dJsStelycsV9w2LLz3_kkyan30fZ2E5y75vlzHdGeM93s"/>
+</div>
+</nav>
+<div class="flex pt-16 min-h-screen">
+<aside class="bg-[#0c1326] text-[#a3a6ff] font-mono text-[0.875rem] docked left-0 h-[calc(100vh-4rem)] w-64 flex-col hidden lg:flex sticky top-16">
+<div class="p-6">
+<div class="flex items-center gap-3 mb-1">
+<div class="w-8 h-8 bg-surface-container rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">biotech</span>
+</div>
+<div>
+<div class="text-lg font-bold text-[#dfe4fe]">Project Alpha</div>
+<div class="text-[0.7rem] text-on-surface-variant opacity-70">ID: 992-UX</div>
+</div>
+</div>
+</div>
+<nav class="flex-1 px-4 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-[#a5aac2] hover:bg-[#11192e] hover:text-[#dfe4fe] transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#69f6b8] font-bold border-r-2 border-[#69f6b8] hover:bg-[#11192e] transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="biotech" style="font-variation-settings: 'FILL' 1;">biotech</span>
+<span>Active Labs</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#a5aac2] hover:bg-[#11192e] hover:text-[#dfe4fe] transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="storage">storage</span>
+<span>Resources</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#a5aac2] hover:bg-[#11192e] hover:text-[#dfe4fe] transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+<span>Analytics</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#a5aac2] hover:bg-[#11192e] hover:text-[#dfe4fe] transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>Team</span>
+</a>
+</nav>
+<div class="px-4 py-6 border-t border-outline-variant/10">
+<button class="w-full py-2 mb-6 bg-surface-container hover:bg-surface-container-high text-primary border border-primary/20 rounded font-bold transition-all">
+          New Instance
+        </button>
+<div class="space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-[#a5aac2] hover:bg-[#11192e] hover:text-[#dfe4fe] transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+<span>Support</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#a5aac2] hover:bg-[#11192e] hover:text-[#dfe4fe] transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="list_alt">list_alt</span>
+<span>Logs</span>
+</a>
+</div>
+</div>
+</aside>
+<main class="flex-1 bg-surface min-h-screen p-6 md:p-10 lg:p-12">
+<div class="max-w-6xl mx-auto">
+<div class="flex flex-col lg:flex-row gap-10">
+<div class="flex-1 space-y-10">
+<header>
+<div class="flex items-center gap-2 text-primary font-mono text-sm mb-4">
+<span class="material-symbols-outlined text-sm">terminal</span>
+<span class="tracking-widest uppercase">Course Module 04</span>
+</div>
+<h1 class="text-4xl md:text-5xl font-bold font-headline text-on-surface tracking-tight mb-6 leading-tight">Advanced Nginx Configuration</h1>
+<p class="text-on-surface-variant text-lg max-w-2xl leading-relaxed">
+                Master the intricacies of high-performance web serving. Learn to optimize buffer sizes, implement complex load balancing strategies, and secure your infrastructure with advanced TLS termination.
+              </p>
+</header>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-surface-container-low p-6 rounded-lg border-l-2 border-primary/30">
+<div class="text-on-surface-variant text-xs font-mono mb-2 uppercase tracking-tighter">Difficulty Level</div>
+<div class="flex items-center gap-2 text-tertiary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">speed</span>
+<span class="font-bold text-lg">Advanced</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-lg border-l-2 border-secondary/30">
+<div class="text-on-surface-variant text-xs font-mono mb-2 uppercase tracking-tighter">Est. Time</div>
+<div class="flex items-center gap-2 text-secondary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">schedule</span>
+<span class="font-bold text-lg">120 Minutes</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-lg border-l-2 border-outline/30">
+<div class="text-on-surface-variant text-xs font-mono mb-2 uppercase tracking-tighter">Format</div>
+<div class="flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">view_in_ar</span>
+<span class="font-bold text-lg">Interactive Lab</span>
+</div>
+</div>
+</div>
+<section class="space-y-6">
+<h3 class="text-2xl font-bold font-headline flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">target</span>
+                Learning Objectives
+              </h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="bg-surface-container p-5 rounded flex gap-4 items-start">
+<div class="w-6 h-6 rounded-full bg-secondary/10 flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-secondary text-sm" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<span class="text-on-surface-variant text-sm leading-relaxed">Implement Upstream Health Checks for high-availability clusters.</span>
+</div>
+<div class="bg-surface-container p-5 rounded flex gap-4 items-start">
+<div class="w-6 h-6 rounded-full bg-secondary/10 flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-secondary text-sm" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<span class="text-on-surface-variant text-sm leading-relaxed">Configure Dynamic Module Loading without service downtime.</span>
+</div>
+<div class="bg-surface-container p-5 rounded flex gap-4 items-start">
+<div class="w-6 h-6 rounded-full bg-secondary/10 flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-secondary text-sm" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<span class="text-on-surface-variant text-sm leading-relaxed">Optimize worker_connections and rlimit for peak traffic.</span>
+</div>
+<div class="bg-surface-container p-5 rounded flex gap-4 items-start">
+<div class="w-6 h-6 rounded-full bg-secondary/10 flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-secondary text-sm" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<span class="text-on-surface-variant text-sm leading-relaxed">Apply HTTP/2 and OCSP Stapling for performance gains.</span>
+</div>
+</div>
+</section>
+<section class="bg-surface-container-lowest rounded-xl p-8 border border-outline-variant/10 shadow-2xl overflow-hidden relative group">
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[100px] -mr-32 -mt-32"></div>
+<div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+<div>
+<h3 class="text-xl font-bold mb-2">Ready to start the session?</h3>
+<p class="text-on-surface-variant text-sm">Container will be provisioned in the us-east-1 region.</p>
+</div>
+<button class="bg-gradient-to-b from-primary to-primary-dim text-on-primary px-8 py-4 font-bold text-lg rounded shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
+                  Start Lab Session
+                </button>
+</div>
+</section>
+</div>
+<aside class="w-full lg:w-80 space-y-8">
+<div class="bg-surface-container-high rounded-lg p-6 border border-outline-variant/20">
+<h4 class="font-mono text-xs uppercase tracking-widest text-on-surface-variant mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">settings_input_component</span>
+                Resource Limits
+              </h4>
+<div class="space-y-6">
+<div class="space-y-3">
+<div class="flex justify-between text-xs font-mono">
+<span>CPU ALLOCATION</span>
+<span class="text-secondary">0.5 VCPU</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-1/2"></div>
+</div>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between text-xs font-mono">
+<span>MEMORY LIMIT</span>
+<span class="text-primary">512MB RAM</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[40%]"></div>
+</div>
+</div>
+<div class="pt-2">
+<div class="bg-surface-container p-3 rounded font-mono text-[0.7rem] text-on-surface-variant/80 border border-outline-variant/10">
+<span class="text-secondary">$</span> kubectl describe pod nginx-lab
+                  </div>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-lg p-6">
+<h4 class="font-bold text-on-surface mb-6 flex items-center justify-between">
+                Curriculum
+                <span class="text-[0.65rem] font-mono text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">6 STAGES</span>
+</h4>
+<div class="space-y-2">
+<div class="flex items-center gap-3 p-3 rounded bg-surface-container border border-outline-variant/10 group cursor-default">
+<span class="text-xs font-mono text-primary group-hover:text-secondary transition-colors">01</span>
+<span class="text-sm text-on-surface">Base Installation</span>
+<span class="material-symbols-outlined text-secondary ml-auto text-sm" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex items-center gap-3 p-3 rounded bg-surface-container-high border border-primary/30 group cursor-default">
+<span class="text-xs font-mono text-primary">02</span>
+<span class="text-sm font-bold text-on-surface">Stream Modules</span>
+<span class="material-symbols-outlined text-primary ml-auto text-sm">play_circle</span>
+</div>
+<div class="flex items-center gap-3 p-3 rounded hover:bg-surface-container border border-transparent transition-all cursor-pointer">
+<span class="text-xs font-mono text-on-surface-variant">03</span>
+<span class="text-sm text-on-surface-variant">Worker Optimization</span>
+<span class="material-symbols-outlined text-on-surface-variant/30 ml-auto text-sm">lock</span>
+</div>
+<div class="flex items-center gap-3 p-3 rounded hover:bg-surface-container border border-transparent transition-all cursor-pointer">
+<span class="text-xs font-mono text-on-surface-variant">04</span>
+<span class="text-sm text-on-surface-variant">Security Hardening</span>
+<span class="material-symbols-outlined text-on-surface-variant/30 ml-auto text-sm">lock</span>
+</div>
+<div class="flex items-center gap-3 p-3 rounded hover:bg-surface-container border border-transparent transition-all cursor-pointer">
+<span class="text-xs font-mono text-on-surface-variant">05</span>
+<span class="text-sm text-on-surface-variant">Lua Scripting</span>
+<span class="material-symbols-outlined text-on-surface-variant/30 ml-auto text-sm">lock</span>
+</div>
+<div class="flex items-center gap-3 p-3 rounded hover:bg-surface-container border border-transparent transition-all cursor-pointer">
+<span class="text-xs font-mono text-on-surface-variant">06</span>
+<span class="text-sm text-on-surface-variant">Final Project</span>
+<span class="material-symbols-outlined text-on-surface-variant/30 ml-auto text-sm">lock</span>
+</div>
+</div>
+</div>
+<div class="p-4 bg-error-container/10 border border-error-container/20 rounded-lg">
+<div class="flex gap-3">
+<span class="material-symbols-outlined text-error-dim" style="font-variation-settings: 'FILL' 1;">warning</span>
+<p class="text-xs text-on-surface-variant leading-tight">
+<strong class="text-error-dim block mb-1">Prerequisite Check</strong>
+                  Ensure you have completed 'Nginx Fundamentals' before starting this advanced module.
+                </p>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</main>
+</div>
+<footer class="h-6 w-full bg-primary-container text-on-primary-container flex items-center justify-between px-4 fixed bottom-0 z-50 text-[0.65rem] font-mono tracking-tight">
+<div class="flex items-center gap-4">
+<span class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 bg-on-primary-container rounded-full"></span>
+        SYSTEM READY
+      </span>
+<span>NODE: US-EAST-1A</span>
+</div>
+<div class="flex items-center gap-4">
+<span>CPU: 12%</span>
+<span>MEM: 2.1GB/16GB</span>
+<span class="font-bold">DEVL_OS v4.2.0</span>
+</div>
+</footer>
+</body></html>
