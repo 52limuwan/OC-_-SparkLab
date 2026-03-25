@@ -20,10 +20,13 @@ api.interceptors.request.use(
 
 // 响应拦截器
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    return response;
+  },
   (error) => {
+    // 处理401错误
     if (error.response?.status === 401) {
-      // 未授权，只在非首页和非登录页时跳转
+      // 未授权，跳转到登录页（排除登录、注册和首页）
       if (typeof window !== 'undefined' && 
           !window.location.pathname.includes('/login') &&
           !window.location.pathname.includes('/register') &&
@@ -39,7 +42,7 @@ export default api;
 
 // ==================== Auth API ====================
 export const authAPI = {
-  register: (data: { username: string; email: string; password: string }) =>
+  register: (data: { username: string; email: string; password: string; qqNumber?: string }) =>
     api.post('/auth/register', data),
   
   login: (data: { username: string; password: string }) =>
@@ -134,6 +137,9 @@ export const adminAPI = {
   
   getAllUsers: () =>
     api.get('/admin/users'),
+  
+  createUser: (data: { username: string; email: string; password: string; role?: string; qqNumber?: string }) =>
+    api.post('/admin/users', data),
   
   deleteUser: (id: string) =>
     api.delete(`/admin/users/${id}`),

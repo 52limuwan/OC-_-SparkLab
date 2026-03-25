@@ -24,9 +24,10 @@ export class AuthController {
     // 设置 HttpOnly Cookie
     response.cookie('access_token', result.access_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // 开发环境设为 false
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
     });
 
     return result;
@@ -40,8 +41,31 @@ export class AuthController {
   }
 
   @Get('profile')
-  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   async getProfile(@Req() req) {
+    try {
+      // 尝试从cookie中获取token
+      const token = req.cookies?.access_token;
+      
+      if (!token) {
+        return { authenticated: false, user: null };
+      }
+
+      // 验证token并获取用户信息
+      const jwt = require('jsonwebtoken');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      const user = await this.authService.getProfile(decoded.sub);
+      
+      return { authenticated: true, user };
+    } catch (error) {
+      // Token无效或过期，返回未认证状态
+      return { authenticated: false, user: null };
+    }
+  }
+
+  @Get('profile-protected')
+  @UseGuards(JwtAuthGuard)
+  async getProfileProtected(@Req() req) {
     return this.authService.getProfile(req.user.sub);
   }
 

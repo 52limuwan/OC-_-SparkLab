@@ -10,7 +10,7 @@ import { BookOpen, Container, Clock, Award, Play } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading, checkAuth } = useAuthStore();
+  const { user, isAuthenticated, isLoading, isLoggingOut, checkAuth } = useAuthStore();
   const [courses, setCourses] = useState<any[]>([]);
   const [containers, setContainers] = useState<any[]>([]);
   const [stats, setStats] = useState({ enrolled: 0, completed: 0, hours: 0, points: 0 });
@@ -48,6 +48,10 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return <LoadingBar />;
+  }
+
+  if (isLoggingOut) {
+    return <LoadingBar text="退出中" />;
   }
 
   if (!isAuthenticated) {

@@ -1,4 +1,3 @@
-import FeishuIcon from '../../components/FeishuIcon';
 import { AnimatedCharacters } from '../../components/AnimatedCharacters';
 import { Button, Form, Input, message } from 'antd';
 import { useState } from 'react';
@@ -194,22 +193,10 @@ export default function Login() {
                         </Form.Item>
                     </Form>
 
-                    <div className={styles.divider}>
-                        <span>或</span>
-                    </div>
-
-                    <Button
-                        block
-                        icon={<FeishuIcon type="icon-feishu" />}
-                        className={styles.googleBtn}
-                    >
-                        飞书账号一键登录
-                    </Button>
-
                     <div className={styles.signupRow}>
                         暂无账号？{' '}
                         <a href="#" className={styles.signupLink}>
-                            联系管理员申请开通
+                            自助注册
                         </a>
                     </div>
                 </div>

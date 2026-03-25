@@ -10,14 +10,14 @@ import { Users, BookOpen, Container, Activity, Trash2, Edit, Plus, X } from 'luc
 
 export default function AdminPage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading, checkAuth } = useAuthStore();
+  const { user, isAuthenticated, isLoading, isLoggingOut, checkAuth } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'courses' | 'labs' | 'containers'>('stats');
   const [stats, setStats] = useState<any>({});
   const [users, setUsers] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [containers, setContainers] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<'course' | 'lab'>('course');
+  const [modalType, setModalType] = useState<'course' | 'lab' | 'user'>('course');
   const [editingItem, setEditingItem] = useState<any>(null);
 
   useEffect(() => {
@@ -112,8 +112,38 @@ export default function AdminPage() {
     }
   };
 
+  const handleSaveUser = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      username: formData.get('username') as string,
+      email: formData.get('email') as string,
+      password: formData.get('password') as string,
+      role: formData.get('role') as string,
+      qqNumber: formData.get('qqNumber') as string,
+    };
+
+    try {
+      await adminAPI.createUser(data);
+      setShowModal(false);
+      loadData();
+    } catch (error) {
+      console.error('Failed to create user:', error);
+      alert('创建用户失败，请检查用户名或邮箱是否已存在');
+    }
+  };
+
+  const getQQAvatar = (qqNumber?: string) => {
+    if (!qqNumber) return null;
+    return `http://q1.qlogo.cn/g?b=qq&nk=${qqNumber}&s=640`;
+  };
+
   if (isLoading) {
     return <LoadingBar />;
+  }
+
+  if (isLoggingOut) {
+    return <LoadingBar text="退出中" />;
   }
 
   if (!isAuthenticated || user?.role !== 'ADMIN') {
@@ -205,45 +235,76 @@ export default function AdminPage() {
 
           {/* 用户管理 */}
           {activeTab === 'users' && (
-            <div className="bg-surface-container-high rounded-xl overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-surface-container border-b border-white/10">
-                  <tr>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">用户名</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">邮箱</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">角色</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">容器数</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">提交数</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((u) => (
-                    <tr key={u.id} className="border-b border-white/5 hover:bg-surface-container transition-colors">
-                      <td className="p-4 text-primary">{u.username}</td>
-                      <td className="p-4 text-on-surface-variant">{u.email}</td>
-                      <td className="p-4">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          u.role === 'ADMIN' ? 'bg-primary/20 text-primary' : 'bg-surface-container text-on-surface-variant'
-                        }`}>
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="p-4 text-on-surface-variant">{u._count?.containers || 0}</td>
-                      <td className="p-4 text-on-surface-variant">{u._count?.submissions || 0}</td>
-                      <td className="p-4">
-                        <button
-                          onClick={() => handleDeleteUser(u.id)}
-                          className="text-red-400 hover:text-red-300 transition-colors"
-                          disabled={u.role === 'ADMIN'}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
+            <div>
+              <div className="mb-4 flex justify-end">
+                <button
+                  onClick={() => {
+                    setModalType('user');
+                    setShowModal(true);
+                  }}
+                  className="bg-primary text-on-primary px-4 py-2 rounded-lg flex items-center gap-2 hover:opacity-90 transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  添加用户
+                </button>
+              </div>
+
+              <div className="bg-surface-container-high rounded-xl overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-surface-container border-b border-white/10">
+                    <tr>
+                      <th className="text-left p-4 text-sm font-medium text-on-surface-variant">头像</th>
+                      <th className="text-left p-4 text-sm font-medium text-on-surface-variant">用户名</th>
+                      <th className="text-left p-4 text-sm font-medium text-on-surface-variant">邮箱</th>
+                      <th className="text-left p-4 text-sm font-medium text-on-surface-variant">QQ号</th>
+                      <th className="text-left p-4 text-sm font-medium text-on-surface-variant">角色</th>
+                      <th className="text-left p-4 text-sm font-medium text-on-surface-variant">容器数</th>
+                      <th className="text-left p-4 text-sm font-medium text-on-surface-variant">提交数</th>
+                      <th className="text-left p-4 text-sm font-medium text-on-surface-variant">操作</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {users.map((u) => (
+                      <tr key={u.id} className="border-b border-white/5 hover:bg-surface-container transition-colors">
+                        <td className="p-4">
+                          {u.qqNumber ? (
+                            <img 
+                              src={getQQAvatar(u.qqNumber) || ''} 
+                              alt={u.username}
+                              className="w-10 h-10 rounded-full"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                              {u.username.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-4 text-primary">{u.username}</td>
+                        <td className="p-4 text-on-surface-variant">{u.email}</td>
+                        <td className="p-4 text-on-surface-variant">{u.qqNumber || '-'}</td>
+                        <td className="p-4">
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            u.role === 'ADMIN' ? 'bg-primary/20 text-primary' : 'bg-surface-container text-on-surface-variant'
+                          }`}>
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className="p-4 text-on-surface-variant">{u._count?.containers || 0}</td>
+                        <td className="p-4 text-on-surface-variant">{u._count?.submissions || 0}</td>
+                        <td className="p-4">
+                          <button
+                            onClick={() => handleDeleteUser(u.id)}
+                            className="text-red-400 hover:text-red-300 transition-colors"
+                            disabled={u.role === 'ADMIN'}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -350,7 +411,7 @@ export default function AdminPage() {
         </div>
       </main>
 
-      {/* 模态框 */}
+      {/* 模态框 - 课程 */}
       {showModal && modalType === 'course' && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-surface-container-high rounded-xl p-6 w-full max-w-md">
@@ -422,6 +483,90 @@ export default function AdminPage() {
                   className="flex-1 bg-primary text-on-primary px-4 py-2 rounded-lg hover:opacity-90 transition-all"
                 >
                   保存
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 模态框 - 用户 */}
+      {showModal && modalType === 'user' && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-surface-container-high rounded-xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-primary">添加用户</h3>
+              <button onClick={() => setShowModal(false)} className="text-on-surface-variant hover:text-primary">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveUser} className="space-y-4">
+              <div>
+                <label className="block text-sm text-on-surface-variant mb-2">用户名</label>
+                <input
+                  name="username"
+                  required
+                  className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-on-surface-variant mb-2">邮箱</label>
+                <input
+                  name="email"
+                  type="email"
+                  required
+                  className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-on-surface-variant mb-2">密码</label>
+                <input
+                  name="password"
+                  type="password"
+                  required
+                  className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-on-surface-variant mb-2">QQ号（选填）</label>
+                <input
+                  name="qqNumber"
+                  type="text"
+                  placeholder="用于获取QQ头像"
+                  className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-on-surface-variant mb-2">角色</label>
+                <select
+                  name="role"
+                  defaultValue="STUDENT"
+                  className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="STUDENT">学生</option>
+                  <option value="TEACHER">教师</option>
+                  <option value="ADMIN">管理员</option>
+                </select>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 bg-surface-container text-on-surface-variant px-4 py-2 rounded-lg hover:bg-surface-bright transition-all"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-primary text-on-primary px-4 py-2 rounded-lg hover:opacity-90 transition-all"
+                >
+                  创建
                 </button>
               </div>
             </form>

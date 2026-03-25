@@ -10,7 +10,7 @@ import { BookOpen, Clock, Award, ArrowLeft } from 'lucide-react';
 
 export default function ExplorePage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
+  const { isAuthenticated, isLoading, isLoggingOut, checkAuth } = useAuthStore();
   const [courses, setCourses] = useState<any[]>([]);
 
   useEffect(() => {
@@ -53,6 +53,10 @@ export default function ExplorePage() {
 
   if (isLoading) {
     return <LoadingBar />;
+  }
+
+  if (isLoggingOut) {
+    return <LoadingBar text="退出中" />;
   }
 
   return (

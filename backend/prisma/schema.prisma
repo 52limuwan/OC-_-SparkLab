@@ -18,6 +18,7 @@ model User {
   password      String
   role          String   @default("STUDENT") // STUDENT, TEACHER, ADMIN
   avatar        String?
+  qqNumber      String?  // QQ号，用于获取QQ头像
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   lastActiveAt  DateTime @default(now()) // 用于自动回收

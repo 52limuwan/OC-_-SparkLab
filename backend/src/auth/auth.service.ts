@@ -34,6 +34,7 @@ export class AuthService {
         email: registerDto.email,
         password: hashedPassword,
         role: 'STUDENT',
+        qqNumber: registerDto.qqNumber,
       },
     });
     
@@ -78,6 +79,7 @@ export class AuthService {
         email: true,
         role: true,
         avatar: true,
+        qqNumber: true,
         createdAt: true,
       },
     });
@@ -92,6 +94,7 @@ export class AuthService {
         email: true,
         role: true,
         avatar: true,
+        qqNumber: true,
         createdAt: true,
         lastActiveAt: true,
       },

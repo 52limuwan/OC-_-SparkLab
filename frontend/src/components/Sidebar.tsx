@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Home, BookOpen, Container, Camera, User, Settings, LogOut, Shield } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { getUserAvatarOrInitial } from '@/lib/avatar';
 import { cn } from '@/lib/utils';
+import LoadingBar from './LoadingBar';
 
 const navItems = [
   { icon: Home, label: '仪表盘', href: '/dashboard', active: true },
@@ -20,12 +22,17 @@ const adminNavItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuthStore();
+  const router = useRouter();
+  const { user, logout, isLoggingOut } = useAuthStore();
 
   const handleLogout = async () => {
     await logout();
-    window.location.href = '/login';
+    router.push('/');
   };
+
+  if (isLoggingOut) {
+    return <LoadingBar text="退出中" />;
+  }
 
   return (
     <aside className="h-screen w-64 fixed left-0 top-0 bg-surface-container-low flex flex-col py-6 font-headline tracking-tight text-sm z-50 border-r border-outline-variant/10">
@@ -96,9 +103,20 @@ export default function Sidebar() {
 
         {user && (
           <div className="mx-2 mt-4 flex items-center gap-3 px-2 py-3 rounded-xl bg-surface-container">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
-              {user.username[0].toUpperCase()}
-            </div>
+            {(() => {
+              const avatar = getUserAvatarOrInitial(user);
+              return avatar.type === 'image' ? (
+                <img 
+                  src={avatar.value} 
+                  alt={user.username}
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
+                  {avatar.value}
+                </div>
+              );
+            })()}
             <div className="overflow-hidden flex-1">
               <p className="text-xs font-bold text-primary truncate">{user.username}</p>
               <p className="text-[10px] text-on-surface-variant truncate">{user.email}</p>

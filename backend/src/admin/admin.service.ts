@@ -13,6 +13,7 @@ export class AdminService {
         username: true,
         email: true,
         role: true,
+        qqNumber: true,
         createdAt: true,
         lastActiveAt: true,
         _count: {
@@ -23,6 +24,29 @@ export class AdminService {
         },
       },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createUser(data: { username: string; email: string; password: string; role?: string; qqNumber?: string }) {
+    const bcrypt = require('bcrypt');
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+    
+    return this.prisma.user.create({
+      data: {
+        username: data.username,
+        email: data.email,
+        password: hashedPassword,
+        role: data.role || 'STUDENT',
+        qqNumber: data.qqNumber,
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
+        qqNumber: true,
+        createdAt: true,
+      },
     });
   }
 

@@ -79,4 +79,18 @@
   .animate-loading-slide {
     animation: loading-slide 1.5s ease-in-out infinite;
   }
+
+  /* Progress Fill Animation */
+  @keyframes progress-fill {
+    0% {
+      width: 0%;
+    }
+    100% {
+      width: 100%;
+    }
+  }
+
+  .animate-progress-fill {
+    animation: progress-fill 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
 }

@@ -16,6 +16,11 @@ export class AdminController {
     return this.adminService.getAllUsers();
   }
 
+  @Post('users')
+  async createUser(@Body() data: { username: string; email: string; password: string; role?: string; qqNumber?: string }) {
+    return this.adminService.createUser(data);
+  }
+
   @Delete('users/:id')
   async deleteUser(@Param('id') id: string) {
     return this.adminService.deleteUser(id);
