@@ -53,7 +53,15 @@ export default function Terminal({ containerId = 'default' }: TerminalProps) {
     const fitAddon = new FitAddon();
     xterm.loadAddon(fitAddon);
     xterm.open(terminalRef.current);
-    fitAddon.fit();
+    
+    // 延迟调用 fit() 确保 DOM 已完全渲染
+    setTimeout(() => {
+      try {
+        fitAddon.fit();
+      } catch (error) {
+        console.error('Failed to fit terminal:', error);
+      }
+    }, 100);
 
     xtermRef.current = xterm;
     fitAddonRef.current = fitAddon;
@@ -92,11 +100,15 @@ export default function Terminal({ containerId = 'default' }: TerminalProps) {
     });
 
     const handleResize = () => {
-      fitAddon.fit();
-      socket.emit('resize', {
-        rows: xterm.rows,
-        cols: xterm.cols,
-      });
+      try {
+        fitAddon.fit();
+        socket.emit('resize', {
+          rows: xterm.rows,
+          cols: xterm.cols,
+        });
+      } catch (error) {
+        console.error('Failed to resize terminal:', error);
+      }
     };
 
     window.addEventListener('resize', handleResize);

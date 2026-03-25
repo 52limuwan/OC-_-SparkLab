@@ -10,10 +10,15 @@ async function bootstrap() {
     credentials: true,
   });
   
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+    disableErrorMessages: false,
+  }));
   
   await app.listen(4000);
-  console.log('🚀 Backend running on http://localhost:4000');
+  console.log('Backend running on http://localhost:4000');
 }
 
 bootstrap();

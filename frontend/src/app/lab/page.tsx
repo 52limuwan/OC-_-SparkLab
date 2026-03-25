@@ -87,6 +87,16 @@ export default function LabWorkspace() {
             <button className="w-full bg-surface-container-high text-on-surface-variant py-2 rounded font-medium text-xs border border-outline-variant/20 hover:text-on-surface transition-colors">
               向 AI 助手提问
             </button>
+            <button 
+              onClick={() => {
+                localStorage.removeItem('token')
+                window.location.href = '/login'
+              }}
+              className="w-full bg-red-500/10 text-red-500 py-2 rounded font-medium text-xs border border-red-500/20 hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined text-sm">logout</span>
+              退出登录
+            </button>
           </div>
         </aside>
 

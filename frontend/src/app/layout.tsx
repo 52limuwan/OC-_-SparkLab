@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Docker 实训平台 | 在线容器化教学系统',
+  title: '星火实验室 | 在线容器化教学系统',
   description: '面向计算机专业学生的在线实训平台。在安全隔离的环境中，快速部署容器，完成实验任务，提升实践能力。',
 }
 

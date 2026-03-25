@@ -1,11 +1,22 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import TopNavBar from '@/components/TopNavBar'
 import SideNavBar from '@/components/SideNavBar'
 import StatusBar from '@/components/StatusBar'
 import AuthGuard from '@/components/AuthGuard'
+import { useAuth } from '@/hooks/useAuth'
+import { getQQAvatar } from '@/lib/avatar'
 
 export default function ProfilePage() {
+  const { user } = useAuth()
+  const [email, setEmail] = useState('')
+  
+  useEffect(() => {
+    if (user?.email) {
+      setEmail(user.email)
+    }
+  }, [user])
   const skills = [
     { name: '容器安全', level: 8, maxLevel: 10, color: 'bg-secondary' },
     { name: '云架构', level: 5, maxLevel: 10, color: 'bg-primary' },
@@ -42,8 +53,26 @@ export default function ProfilePage() {
               </div>
               <div className="relative z-10">
                 <div className="flex items-center gap-4 mb-4">
-                  <h1 className="text-4xl font-bold text-on-surface">张三同学</h1>
-                  <span className="px-3 py-1 bg-secondary-container text-on-secondary rounded text-xs font-mono">精英学员</span>
+                  {/* QQ头像 */}
+                  {email && getQQAvatar(email) ? (
+                    <img 
+                      src={getQQAvatar(email, 100)} 
+                      alt="用户头像" 
+                      className="w-16 h-16 rounded-full border-2 border-primary"
+                      onError={(e) => {
+                        // 如果头像加载失败，隐藏图片
+                        e.currentTarget.style.display = 'none'
+                      }}
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-surface-container-highest flex items-center justify-center border-2 border-primary">
+                      <span className="material-symbols-outlined text-3xl text-primary">person</span>
+                    </div>
+                  )}
+                  <div>
+                    <h1 className="text-4xl font-bold text-on-surface">{user?.username || '张三同学'}</h1>
+                    <span className="px-3 py-1 bg-secondary-container text-on-secondary rounded text-xs font-mono">精英学员</span>
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-8 text-sm">
                   <div className="flex flex-col">
@@ -195,15 +224,17 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[0.625rem] font-mono text-on-surface-variant uppercase ml-1">用户名</label>
-                  <input className="w-full bg-surface-container-high border-none rounded focus:ring-2 focus:ring-primary text-sm p-2.5 font-mono" type="text" defaultValue="张三" />
+                  <input className="w-full bg-surface-container-high border-none rounded focus:ring-2 focus:ring-primary text-sm p-2.5 font-mono" type="text" defaultValue={user?.username || '张三'} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[0.625rem] font-mono text-on-surface-variant uppercase ml-1">邮箱</label>
-                  <input className="w-full bg-surface-container-high border-none rounded focus:ring-2 focus:ring-primary text-sm p-2.5 font-mono" type="email" defaultValue="zhangsan@example.com" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[0.625rem] font-mono text-on-surface-variant uppercase ml-1">学号</label>
-                  <input className="w-full bg-surface-container-high border-none rounded focus:ring-2 focus:ring-primary text-sm p-2.5 font-mono" type="text" defaultValue="2024001" />
+                  <label className="text-[0.625rem] font-mono text-on-surface-variant uppercase ml-1">QQ邮箱</label>
+                  <input 
+                    className="w-full bg-surface-container-high border-none rounded focus:ring-2 focus:ring-primary text-sm p-2.5 font-mono" 
+                    type="email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="123456789@qq.com"
+                  />
                 </div>
                 <div className="flex items-end pb-1 px-1">
                   <button className="text-sm font-bold text-primary hover:underline flex items-center gap-2">

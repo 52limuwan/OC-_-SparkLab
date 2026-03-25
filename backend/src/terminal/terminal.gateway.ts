@@ -45,10 +45,11 @@ export class TerminalGateway implements OnGatewayConnection, OnGatewayDisconnect
       // 根据操作系统选择 shell
       const shell = os.platform() === 'win32' ? 'powershell.exe' : '/bin/bash';
       
-      // 启动本地 shell
+      // 启动本地 shell，明确设置 shell: false 避免安全警告
       const shellProcess = spawn(shell, [], {
         cwd: process.cwd(),
         env: process.env,
+        shell: false, // 明确禁用 shell 模式
       });
 
       this.sessions.set(client.id, { shell: shellProcess });
