@@ -1,9 +1,7 @@
 'use client'
 
 import { useRef, useEffect } from 'react'
-import Link from 'next/link'
 import TopNavBar from '@/components/TopNavBar'
-import StatusBar from '@/components/StatusBar'
 import ParticleBackground from '@/components/ParticleBackground'
 import AnimatedTerminal from '@/components/AnimatedTerminal'
 
@@ -15,15 +13,13 @@ export default function LandingPage() {
     if (!video) return
 
     const handleTimeUpdate = () => {
-      const fadeOutStart = video.duration - 0.5 // 结束前0.5秒开始淡出
-      const fadeInEnd = 0.5 // 开始后0.5秒完成淡入
+      const fadeOutStart = video.duration - 0.5
+      const fadeInEnd = 0.5
 
       if (video.currentTime >= fadeOutStart) {
-        // 淡出效果
         const opacity = 1 - (video.currentTime - fadeOutStart) / 0.5
         video.style.opacity = Math.max(0, opacity).toString()
       } else if (video.currentTime <= fadeInEnd) {
-        // 淡入效果
         const opacity = video.currentTime / fadeInEnd
         video.style.opacity = Math.min(1, opacity).toString()
       } else {
@@ -40,9 +36,7 @@ export default function LandingPage() {
       <TopNavBar />
       
       <main className="relative">
-        {/* Hero Section - 第一屏带视频和点点 */}
         <section className="relative overflow-hidden h-screen flex items-center justify-center px-6">
-          {/* 视频背景 */}
           <div className="absolute inset-0 z-0">
             <video 
               ref={videoRef}
@@ -56,7 +50,6 @@ export default function LandingPage() {
             </video>
           </div>
 
-          {/* 粒子背景 - 只在第一屏 */}
           <div className="absolute inset-0 z-0">
             <ParticleBackground />
           </div>
@@ -72,7 +65,6 @@ export default function LandingPage() {
               </p>
             </div>
 
-            {/* 动画终端 */}
             <AnimatedTerminal />
           </div>
         </section>
