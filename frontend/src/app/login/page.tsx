@@ -14,6 +14,7 @@ export default function Login() {
     const [isTyping, setIsTyping] = useState(false);
     const [passwordValue, setPasswordValue] = useState('');
     const [error, setError] = useState('');
+    const [showCredit, setShowCredit] = useState(false);
     const [formData, setFormData] = useState({
         username: '',
         password: '',
@@ -63,8 +64,17 @@ export default function Login() {
             <div className="flex items-center justify-center p-8 bg-slate-950">
                 <div className="w-full max-w-md">
                     <div className="text-center mb-10">
-                        <h1 className="text-3xl font-bold text-white mb-3 tracking-tight">登录到工作台</h1>
-                        <p className="text-sm text-gray-400">统一接入前端平台旗下所有系统</p>
+                        <h1 
+                            className="text-3xl font-bold text-white mb-3 tracking-tight cursor-pointer select-none"
+                            onDoubleClick={() => setShowCredit(!showCredit)}
+                        >
+                            登录 到 星火实验室
+                        </h1>
+                        {showCredit && (
+                            <p className="text-sm text-gray-400 mb-2">
+                                由 21动漫1班 肖瑞杰 倾力制作
+                            </p>
+                        )}
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-5">
