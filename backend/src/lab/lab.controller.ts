@@ -1,24 +1,29 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, UseGuards, Req } from '@nestjs/common';
 import { LabService } from './lab.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('labs')
-@UseGuards(JwtAuthGuard)
 export class LabController {
   constructor(private labService: LabService) {}
 
-  @Get()
-  async findAll() {
-    return this.labService.findAll();
-  }
-
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.labService.findOne(id);
+  async findOne(@Param('id') id: string, @Req() req) {
+    const userId = req.user?.sub;
+    return this.labService.findOne(id, userId);
   }
 
-  @Post()
-  async create(@Body() labData: any) {
-    return this.labService.create(labData);
+  @Get('course/:courseId')
+  async findByCourse(@Param('courseId') courseId: string) {
+    return this.labService.findByCourse(courseId);
+  }
+
+  @Post(':id/submit')
+  @UseGuards(JwtAuthGuard)
+  async submit(
+    @Param('id') id: string,
+    @Body() body: { code?: string },
+    @Req() req,
+  ) {
+    return this.labService.submit(id, req.user.sub, body.code);
   }
 }

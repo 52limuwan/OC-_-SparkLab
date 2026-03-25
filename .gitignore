@@ -1,24 +1,41 @@
-# Dependencies
+# 依赖
 node_modules/
 .pnp
 .pnp.js
 
-# Testing
+# 测试
 coverage/
-*.log
+*.lcov
+.nyc_output
 
-# Production
+# 生产构建
 dist/
 build/
 .next/
 out/
 
-# Environment
+# 环境变量
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# 日志
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+backend.log
+frontend.log
+
+# 数据库
+*.db
+*.db-journal
+spark_lab.db
+docker_lab.db
 
 # IDE
 .vscode/
@@ -26,16 +43,23 @@ out/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
-Thumbs.db
 
-# Debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Prisma
+backend/prisma/migrations/
 
-# Misc
-*.pem
+# 临时文件
+*.tmp
+*.temp
+.cache/
+
+# PID 文件
+.backend.pid
+.frontend.pid
+
+# Docker
+.dockerignore
+
+# 其他
 .vercel
+.turbo

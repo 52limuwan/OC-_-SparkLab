@@ -1,59 +1,35 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
 import TopNavBar from '@/components/TopNavBar'
 import ParticleBackground from '@/components/ParticleBackground'
 import AnimatedTerminal from '@/components/AnimatedTerminal'
 
 export default function LandingPage() {
-  const videoRef = useRef<HTMLVideoElement>(null)
-
-  useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-
-    const handleTimeUpdate = () => {
-      const fadeOutStart = video.duration - 0.5
-      const fadeInEnd = 0.5
-
-      if (video.currentTime >= fadeOutStart) {
-        const opacity = 1 - (video.currentTime - fadeOutStart) / 0.5
-        video.style.opacity = Math.max(0, opacity).toString()
-      } else if (video.currentTime <= fadeInEnd) {
-        const opacity = video.currentTime / fadeInEnd
-        video.style.opacity = Math.min(1, opacity).toString()
-      } else {
-        video.style.opacity = '1'
-      }
-    }
-
-    video.addEventListener('timeupdate', handleTimeUpdate)
-    return () => video.removeEventListener('timeupdate', handleTimeUpdate)
-  }, [])
-
   return (
     <div className="relative min-h-screen bg-black text-white font-body">
       <TopNavBar />
       
       <main className="relative">
         <section className="relative overflow-hidden h-screen flex items-center justify-center px-6">
+          {/* 视频背景 */}
           <div className="absolute inset-0 z-0">
             <video 
-              ref={videoRef}
               autoPlay 
               loop 
               muted 
               playsInline
-              className="w-full h-full object-cover transition-opacity duration-500"
+              className="w-full h-full object-cover"
             >
               <source src="/video.mp4" type="video/mp4" />
             </video>
           </div>
 
+          {/* 粒子背景 */}
           <div className="absolute inset-0 z-0">
             <ParticleBackground />
           </div>
 
+          {/* 主要内容 */}
           <div className="max-w-7xl mx-auto w-full relative z-10 pt-24">
             <div className="text-center mb-12">
               <h1 className="text-5xl lg:text-7xl font-bold font-headline leading-[1.1] mb-6">

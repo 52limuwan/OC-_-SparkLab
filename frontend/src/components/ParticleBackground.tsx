@@ -29,7 +29,7 @@ export default function ParticleBackground() {
     // 初始化点阵 - 必须在 resizeCanvas 之前声明
     const initDots = () => {
       const dots: Dot[] = []
-      const spacing = 10 // 点之间的间距（超级密集）
+      const spacing = 20 // 减小间距，增加粒子数量
       const cols = Math.ceil(canvas.width / spacing)
       const rows = Math.ceil(canvas.height / spacing)
 
@@ -37,7 +37,7 @@ export default function ParticleBackground() {
         for (let j = 0; j < rows; j++) {
           const x = i * spacing + spacing / 2
           const y = j * spacing + spacing / 2
-          const baseOpacity = Math.random() * 0.1 + 0.03 // 0.03 - 0.13 (非常透明)
+          const baseOpacity = Math.random() * 0.15 + 0.05 // 稍微提高透明度
           dots.push({
             x,
             y,
@@ -76,14 +76,25 @@ export default function ParticleBackground() {
     }
     window.addEventListener('mouseleave', handleMouseLeave)
 
-    // 动画循环
-    const animate = () => {
+    // 动画循环 - 使用节流优化性能
+    let lastTime = 0
+    const fps = 60 // 目标帧率
+    const interval = 1000 / fps
+
+    const animate = (currentTime: number) => {
+      // 节流：只在达到目标帧率间隔时才更新
+      if (currentTime - lastTime < interval) {
+        animationFrameRef.current = requestAnimationFrame(animate)
+        return
+      }
+      lastTime = currentTime
+
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
       const dots = dotsRef.current
       const mouse = mouseRef.current
-      const pushRadius = 150 // 推开半径
-      const fadeRadius = 100 // 淡化半径
+      const pushRadius = 120 // 减小推开半径
+      const fadeRadius = 80 // 减小淡化半径
 
       dots.forEach((dot) => {
         // 计算与鼠标的距离
@@ -94,7 +105,7 @@ export default function ParticleBackground() {
         // 推开效果 - 向外散开
         if (distance < pushRadius) {
           const force = (pushRadius - distance) / pushRadius
-          const pushStrength = force * 30 // 推开强度
+          const pushStrength = force * 25 // 减小推开强度
           
           // 计算推开方向（从鼠标指向点的方向）
           const angle = Math.atan2(dy, dx)
@@ -102,21 +113,21 @@ export default function ParticleBackground() {
           const targetOffsetY = Math.sin(angle) * pushStrength
           
           // 平滑过渡
-          dot.offsetX += (targetOffsetX - dot.offsetX) * 0.2
-          dot.offsetY += (targetOffsetY - dot.offsetY) * 0.2
+          dot.offsetX += (targetOffsetX - dot.offsetX) * 0.15
+          dot.offsetY += (targetOffsetY - dot.offsetY) * 0.15
           
           // 中心区域淡化效果
           if (distance < fadeRadius) {
             const fadeForce = 1 - (distance / fadeRadius)
-            dot.currentOpacity = dot.baseOpacity * (1 - fadeForce * 0.8)
+            dot.currentOpacity = dot.baseOpacity * (1 - fadeForce * 0.7)
           } else {
-            dot.currentOpacity += (dot.baseOpacity - dot.currentOpacity) * 0.1
+            dot.currentOpacity += (dot.baseOpacity - dot.currentOpacity) * 0.08
           }
         } else {
           // 恢复原位
-          dot.offsetX += (0 - dot.offsetX) * 0.1
-          dot.offsetY += (0 - dot.offsetY) * 0.1
-          dot.currentOpacity += (dot.baseOpacity - dot.currentOpacity) * 0.1
+          dot.offsetX += (0 - dot.offsetX) * 0.08
+          dot.offsetY += (0 - dot.offsetY) * 0.08
+          dot.currentOpacity += (dot.baseOpacity - dot.currentOpacity) * 0.08
         }
 
         // 更新点的位置
@@ -125,14 +136,14 @@ export default function ParticleBackground() {
 
         // 绘制点 - 白色
         ctx.beginPath()
-        ctx.arc(dot.x, dot.y, 1.5, 0, Math.PI * 2)
+        ctx.arc(dot.x, dot.y, 1.2, 0, Math.PI * 2)
         ctx.fillStyle = `rgba(255, 255, 255, ${dot.currentOpacity})`
         ctx.fill()
       })
 
       animationFrameRef.current = requestAnimationFrame(animate)
     }
-    animate()
+    animationFrameRef.current = requestAnimationFrame(animate)
 
     // 清理
     return () => {

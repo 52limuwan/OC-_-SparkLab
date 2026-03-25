@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&family=Inter:wght@400;500;600&display=swap');
 
 @layer base {
   * {
@@ -12,9 +12,28 @@
     box-sizing: border-box;
   }
 
+  :root {
+    /* Design System Colors */
+    --color-background: #0e0e0e;
+    --color-surface-lowest: #000000;
+    --color-surface-low: #131313;
+    --color-surface-container: #191a1a;
+    --color-surface-high: #1f2020;
+    --color-surface-bright: #2c2c2c;
+    
+    --color-primary: #c6c6c6;
+    --color-primary-dim: #b8b9b9;
+    --color-on-primary: #3f4041;
+    
+    --color-on-surface: #e7e5e4;
+    --color-on-surface-variant: #acabaa;
+    
+    --color-outline-variant: #484848;
+  }
+
   body {
-    background-color: #000000;
-    color: #ffffff;
+    background-color: var(--color-background);
+    color: var(--color-on-surface);
     font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -23,6 +42,11 @@
 }
 
 @layer utilities {
+  /* Gray Button Gradient */
+  .bg-gray-gradient {
+    background: linear-gradient(to bottom, #6b7280 0%, #4b5563 100%);
+  }
+
   /* Animations */
   @keyframes fade-in {
     from {
@@ -37,5 +61,22 @@
 
   .animate-fade-in {
     animation: fade-in 0.3s ease-out;
+  }
+
+  /* Google-style Loading Animation */
+  @keyframes loading-slide {
+    0% {
+      transform: translateX(-100%);
+    }
+    50% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  .animate-loading-slide {
+    animation: loading-slide 1.5s ease-in-out infinite;
   }
 }

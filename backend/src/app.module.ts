@@ -1,23 +1,27 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
+import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
-import { DockerModule } from './docker/docker.module';
-import { TerminalModule } from './terminal/terminal.module';
+import { CourseModule } from './course/course.module';
 import { LabModule } from './lab/lab.module';
+import { ContainerModule } from './container/container.module';
+import { SnapshotModule } from './snapshot/snapshot.module';
+import { TerminalModule } from './terminal/terminal.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'sqljs',
-      location: 'docker_lab.db',
-      autoSave: true,
-      autoLoadEntities: true,
-      synchronize: true, // 开发环境自动同步
+    ConfigModule.forRoot({
+      isGlobal: true,
     }),
+    PrismaModule,
     AuthModule,
-    DockerModule,
-    TerminalModule,
+    CourseModule,
     LabModule,
+    ContainerModule,
+    SnapshotModule,
+    TerminalModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

@@ -1,0 +1,194 @@
+// Spark Lab - 星火实验室数据库设计
+// 支持 SQLite（开发）和 PostgreSQL（生产）
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // 可切换为 "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== 用户系统 ====================
+model User {
+  id            String   @id @default(uuid())
+  username      String   @unique
+  email         String   @unique
+  password      String
+  role          String   @default("STUDENT") // STUDENT, TEACHER, ADMIN
+  avatar        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastActiveAt  DateTime @default(now()) // 用于自动回收
+  
+  // 关联
+  containers    Container[]
+  snapshots     Snapshot[]
+  submissions   Submission[]
+  enrollments   Enrollment[]
+  
+  @@map("users")
+}
+
+// ==================== 课程系统 ====================
+model Course {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  cover       String?
+  difficulty  String   @default("beginner") // beginner, intermediate, advanced
+  duration    Int      @default(0) // 预计完成时间（分钟）
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // 关联
+  labs        Lab[]
+  enrollments Enrollment[]
+  
+  @@map("courses")
+}
+
+model Enrollment {
+  id         String   @id @default(uuid())
+  userId     String
+  courseId   String
+  progress   Int      @default(0) // 0-100
+  startedAt  DateTime @default(now())
+  completedAt DateTime?
+  
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+// ==================== 实验系统 ====================
+model Lab {
+  id          String   @id @default(uuid())
+  courseId    String
+  title       String
+  description String
+  content     String   @default("") // Markdown 内容
+  difficulty  String   @default("beginner")
+  order       Int      @default(0)
+  points      Int      @default(100)
+  timeLimit   Int      @default(60) // 分钟
+  
+  // Docker 配置
+  dockerImage String   @default("ubuntu:22.04")
+  cpuLimit    Float    @default(1.0)
+  memoryLimit Int      @default(512) // MB
+  
+  // 判题配置
+  judgeScript String?  // 判题脚本路径
+  judgeType   String   @default("manual") // manual, auto
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // 关联
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  steps       Step[]
+  containers  Container[]
+  submissions Submission[]
+  
+  @@map("labs")
+}
+
+model Step {
+  id          String   @id @default(uuid())
+  labId       String
+  title       String
+  content     String   // Markdown
+  order       Int
+  hint        String?
+  
+  lab         Lab      @relation(fields: [labId], references: [id], onDelete: Cascade)
+  
+  @@map("steps")
+}
+
+// ==================== 容器系统 ====================
+model Container {
+  id           String   @id @default(uuid())
+  userId       String
+  labId        String
+  containerId  String   @unique // Docker 容器 ID
+  status       String   @default("creating") // creating, running, stopped, error
+  
+  // 端口映射
+  sshPort      Int?
+  vncPort      Int?
+  idePort      Int?
+  
+  // 资源限制
+  cpuLimit     Float    @default(1.0)
+  memoryLimit  Int      @default(512)
+  
+  // 时间管理
+  createdAt    DateTime @default(now())
+  startedAt    DateTime?
+  stoppedAt    DateTime?
+  lastActiveAt DateTime @default(now()) // 心跳更新
+  autoStopAt   DateTime? // 自动停止时间
+  
+  // 关联
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lab          Lab      @relation(fields: [labId], references: [id], onDelete: Cascade)
+  snapshots    Snapshot[]
+  
+  @@map("containers")
+}
+
+// ==================== 快照系统 ====================
+model Snapshot {
+  id          String   @id @default(uuid())
+  userId      String
+  containerId String
+  imageId     String   // Docker 镜像 ID
+  name        String
+  description String?
+  size        Int      @default(0) // MB
+  createdAt   DateTime @default(now())
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  container   Container @relation(fields: [containerId], references: [id], onDelete: Cascade)
+  
+  @@map("snapshots")
+}
+
+// ==================== 评分系统 ====================
+model Submission {
+  id          String   @id @default(uuid())
+  userId      String
+  labId       String
+  score       Int      @default(0)
+  maxScore    Int      @default(100)
+  status      String   @default("pending") // pending, passed, failed
+  output      String?  // 判题输出
+  logs        String?  // 执行日志
+  submittedAt DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lab         Lab      @relation(fields: [labId], references: [id], onDelete: Cascade)
+  
+  @@map("submissions")
+}
+
+// ==================== 多节点架构（预留）====================
+model Node {
+  id          String   @id @default(uuid())
+  name        String
+  host        String   @unique
+  port        Int      @default(2375)
+  status      String   @default("offline") // online, offline, maintenance
+  load        Float    @default(0.0) // 0.0 - 1.0
+  maxContainers Int    @default(10)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("nodes")
+}
