@@ -17,12 +17,12 @@ export class AdminController {
   }
 
   @Post('users')
-  async createUser(@Body() data: { username: string; password: string; role?: string; qqNumber?: string }) {
+  async createUser(@Body() data: { username: string; displayName: string; password: string; role?: string; qqNumber?: string }) {
     return this.adminService.createUser(data);
   }
 
   @Put('users/:id')
-  async updateUser(@Param('id') id: string, @Body() data: { username?: string; password?: string; role?: string; qqNumber?: string }) {
+  async updateUser(@Param('id') id: string, @Body() data: { username?: string; displayName?: string; password?: string; role?: string; qqNumber?: string }) {
     return this.adminService.updateUser(id, data);
   }
 

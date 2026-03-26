@@ -42,7 +42,7 @@ export default api;
 
 // ==================== Auth API ====================
 export const authAPI = {
-  register: (data: { username: string; password: string; qqNumber?: string }) =>
+  register: (data: { username: string; displayName: string; password: string; qqNumber?: string }) =>
     api.post('/auth/register', data),
   
   login: (data: { username: string; password: string }) =>
@@ -138,10 +138,10 @@ export const adminAPI = {
   getAllUsers: () =>
     api.get('/admin/users'),
   
-  createUser: (data: { username: string; password: string; role?: string; qqNumber?: string }) =>
+  createUser: (data: { username: string; displayName: string; password: string; role?: string; qqNumber?: string }) =>
     api.post('/admin/users', data),
   
-  updateUser: (id: string, data: { username?: string; password?: string; role?: string; qqNumber?: string }) =>
+  updateUser: (id: string, data: { username?: string; displayName?: string; password?: string; role?: string; qqNumber?: string }) =>
     api.put(`/admin/users/${id}`, data),
   
   deleteUser: (id: string) =>

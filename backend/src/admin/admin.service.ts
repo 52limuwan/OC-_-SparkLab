@@ -11,6 +11,7 @@ export class AdminService {
       select: {
         id: true,
         username: true,
+        displayName: true,
         role: true,
         qqNumber: true,
         createdAt: true,
@@ -26,13 +27,14 @@ export class AdminService {
     });
   }
 
-  async createUser(data: { username: string; password: string; role?: string; qqNumber?: string }) {
+  async createUser(data: { username: string; displayName: string; password: string; role?: string; qqNumber?: string }) {
     const bcrypt = require('bcryptjs');
     const hashedPassword = await bcrypt.hash(data.password, 10);
     
     return this.prisma.user.create({
       data: {
         username: data.username,
+        displayName: data.displayName,
         email: `${data.username}@sparklab.local`, // 生成默认邮箱
         password: hashedPassword,
         role: data.role || 'STUDENT',
@@ -41,6 +43,7 @@ export class AdminService {
       select: {
         id: true,
         username: true,
+        displayName: true,
         role: true,
         qqNumber: true,
         createdAt: true,
@@ -48,7 +51,7 @@ export class AdminService {
     });
   }
 
-  async updateUser(id: string, data: { username?: string; password?: string; role?: string; qqNumber?: string }) {
+  async updateUser(id: string, data: { username?: string; displayName?: string; password?: string; role?: string; qqNumber?: string }) {
     const bcrypt = require('bcryptjs');
     const updateData: any = {};
     
@@ -56,6 +59,7 @@ export class AdminService {
       updateData.username = data.username;
       updateData.email = `${data.username}@sparklab.local`; // 同步更新邮箱
     }
+    if (data.displayName) updateData.displayName = data.displayName;
     if (data.password) updateData.password = await bcrypt.hash(data.password, 10);
     if (data.role) updateData.role = data.role;
     if (data.qqNumber !== undefined) updateData.qqNumber = data.qqNumber;
@@ -66,6 +70,7 @@ export class AdminService {
       select: {
         id: true,
         username: true,
+        displayName: true,
         role: true,
         qqNumber: true,
         createdAt: true,
@@ -120,6 +125,7 @@ export class AdminService {
           select: {
             id: true,
             username: true,
+            displayName: true,
             email: true,
           },
         },
@@ -170,6 +176,7 @@ export class AdminService {
         select: {
           id: true,
           username: true,
+          displayName: true,
           qqNumber: true,
           role: true,
           lastActiveAt: true,

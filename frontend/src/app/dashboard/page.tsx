@@ -66,7 +66,7 @@ export default function DashboardPage() {
         <div className="p-8 flex-1">
           <div className="mb-10">
             <h2 className="text-4xl font-extrabold font-headline tracking-tight text-primary mb-2">
-              欢迎回来，{user?.username}
+              欢迎回来，{user?.displayName}
             </h2>
             <p className="text-on-surface-variant text-lg">
               继续你的学习之旅，掌握实战技能

@@ -82,7 +82,7 @@ export default function AdminSidebar() {
               return avatar.type === 'image' ? (
                 <img 
                   src={avatar.value} 
-                  alt={user.username}
+                  alt={user.displayName}
                   className="w-8 h-8 rounded-full object-cover"
                 />
               ) : (
@@ -92,7 +92,7 @@ export default function AdminSidebar() {
               );
             })()}
             <div className="overflow-hidden flex-1">
-              <p className="text-xs font-bold text-primary truncate">{user.username}</p>
+              <p className="text-xs font-bold text-primary truncate">{user.displayName}</p>
               <p className="text-[10px] text-on-surface-variant truncate">管理员</p>
             </div>
           </div>

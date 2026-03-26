@@ -31,6 +31,7 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: {
         username: registerDto.username,
+        displayName: registerDto.displayName,
         email: `${registerDto.username}@sparklab.local`, // 生成默认邮箱
         password: hashedPassword,
         role: 'STUDENT',
@@ -70,6 +71,7 @@ export class AuthService {
       user: {
         id: user.id,
         username: user.username,
+        displayName: user.displayName,
         email: user.email,
         role: user.role,
         qqNumber: user.qqNumber,
@@ -83,6 +85,7 @@ export class AuthService {
       select: {
         id: true,
         username: true,
+        displayName: true,
         role: true,
         avatar: true,
         qqNumber: true,
@@ -97,6 +100,7 @@ export class AuthService {
       select: {
         id: true,
         username: true,
+        displayName: true,
         email: true,
         role: true,
         avatar: true,
@@ -148,6 +152,7 @@ export class AuthService {
       select: {
         id: true,
         username: true,
+        displayName: true,
         email: true,
         role: true,
         avatar: true,

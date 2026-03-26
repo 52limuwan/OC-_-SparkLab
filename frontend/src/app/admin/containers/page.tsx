@@ -92,7 +92,7 @@ export default function AdminContainersPage() {
                 {containers.map((c) => (
                   <tr key={c.id} className="border-b border-white/5 hover:bg-surface-container transition-colors">
                     <td className="p-4 text-primary font-mono text-xs">{c.id.slice(0, 8)}</td>
-                    <td className="p-4 text-on-surface-variant">{c.user?.username}</td>
+                    <td className="p-4 text-on-surface-variant">{c.user?.displayName || c.user?.username}</td>
                     <td className="p-4 text-on-surface-variant">{c.lab?.title}</td>
                     <td className="p-4">
                       <span className={`px-2 py-1 rounded text-xs ${

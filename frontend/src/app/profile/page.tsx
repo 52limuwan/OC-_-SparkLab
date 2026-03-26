@@ -27,6 +27,7 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     username: '',
+    displayName: '',
     qqNumber: '',
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -45,6 +46,7 @@ export default function ProfilePage() {
     if (user) {
       setEditForm({
         username: user.username || '',
+        displayName: user.displayName || '',
         qqNumber: user.qqNumber || '',
       });
       loadUserStats();
@@ -69,6 +71,7 @@ export default function ProfilePage() {
     if (user) {
       setEditForm({
         username: user.username || '',
+        displayName: user.displayName || '',
         qqNumber: user.qqNumber || '',
       });
     }
@@ -94,7 +97,7 @@ export default function ProfilePage() {
     if (user?.qqNumber) {
       return `https://q1.qlogo.cn/g?b=qq&nk=${user.qqNumber}&s=640`;
     }
-    return `https://ui-avatars.com/api/?name=${user?.username}&background=6366f1&color=fff&size=200`;
+    return `https://ui-avatars.com/api/?name=${user?.displayName}&background=6366f1&color=fff&size=200`;
   };
 
   if (isLoading) {
@@ -130,14 +133,14 @@ export default function ProfilePage() {
                   <div className="relative group">
                     <img
                       src={getAvatarUrl()}
-                      alt={user.username}
+                      alt={user.displayName}
                       className="w-32 h-32 rounded-full object-cover border-4 border-primary/20"
                     />
                     <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
                       <Camera className="w-8 h-8 text-white" />
                     </div>
                   </div>
-                  <h3 className="text-2xl font-bold text-primary mt-4">{user.username}</h3>
+                  <h3 className="text-2xl font-bold text-primary mt-4">{user.displayName}</h3>
                   <span className="text-sm px-3 py-1 rounded-full bg-primary/20 text-primary mt-2">
                     {user.role === 'ADMIN' ? '管理员' : user.role === 'TEACHER' ? '教师' : '学生'}
                   </span>
@@ -148,11 +151,20 @@ export default function ProfilePage() {
                   {isEditing ? (
                     <>
                       <div>
-                        <label className="text-sm text-on-surface-variant mb-1 block">用户名</label>
+                        <label className="text-sm text-on-surface-variant mb-1 block">用户名（登录用）</label>
                         <input
                           type="text"
                           value={editForm.username}
                           onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                          className="w-full bg-surface-container px-4 py-2 rounded-lg text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm text-on-surface-variant mb-1 block">学生名字（显示用）</label>
+                        <input
+                          type="text"
+                          value={editForm.displayName}
+                          onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })}
                           className="w-full bg-surface-container px-4 py-2 rounded-lg text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
@@ -189,7 +201,10 @@ export default function ProfilePage() {
                     <>
                       <div className="flex items-center gap-3 text-on-surface-variant">
                         <User className="w-5 h-5" />
-                        <span>{user.username}</span>
+                        <div>
+                          <p className="text-sm font-medium">{user.displayName}</p>
+                          <p className="text-xs text-on-surface-variant/70">@{user.username}</p>
+                        </div>
                       </div>
                       {user.qqNumber && (
                         <div className="flex items-center gap-3 text-on-surface-variant">

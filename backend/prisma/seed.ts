@@ -13,9 +13,11 @@ async function main() {
     update: {},
     create: {
       username: 'admin',
+      displayName: '管理员',
       email: 'admin@sparklab.com',
       password: adminPassword,
       role: 'ADMIN',
+      qqNumber: '10000',
     },
   });
   console.log('✅ Admin user created:', admin.username);
@@ -27,9 +29,11 @@ async function main() {
     update: {},
     create: {
       username: 'student',
+      displayName: '测试学生',
       email: 'student@sparklab.com',
       password: studentPassword,
       role: 'STUDENT',
+      qqNumber: '10001',
     },
   });
   console.log('✅ Student user created:', student.username);

@@ -157,16 +157,16 @@ export default function AdminPage() {
                         {user.qqNumber ? (
                           <img 
                             src={getQQAvatar(user.qqNumber) || ''} 
-                            alt={user.username}
+                            alt={user.displayName || user.username}
                             className="w-10 h-10 rounded-full"
                           />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-                            {user.username.charAt(0).toUpperCase()}
+                            {(user.displayName || user.username).charAt(0).toUpperCase()}
                           </div>
                         )}
                         <div className="flex-1">
-                          <div className="text-sm font-bold text-primary">{user.username}</div>
+                          <div className="text-sm font-bold text-primary">{user.displayName || user.username}</div>
                           <div className="text-xs text-on-surface-variant">
                             {user._count.containers} 容器 · {user._count.submissions} 提交
                           </div>
@@ -243,7 +243,7 @@ export default function AdminPage() {
                       {stats.recentContainers?.map((container: any) => (
                         <tr key={container.id} className="border-b border-white/5 hover:bg-surface-container transition-colors">
                           <td className="p-3 text-primary font-mono text-xs">{container.id.slice(0, 8)}</td>
-                          <td className="p-3 text-on-surface-variant">{container.user?.username}</td>
+                          <td className="p-3 text-on-surface-variant">{container.user?.displayName || container.user?.username}</td>
                           <td className="p-3 text-on-surface-variant">{container.lab?.title}</td>
                           <td className="p-3">
                             <span className={`px-2 py-1 rounded text-xs ${

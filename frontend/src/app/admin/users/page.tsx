@@ -58,6 +58,7 @@ export default function AdminUsersPage() {
     const password = formData.get('password') as string;
     const data: any = {
       username: formData.get('username') as string,
+      displayName: formData.get('displayName') as string,
       role: formData.get('role') as string,
       qqNumber: formData.get('qqNumber') as string,
     };
@@ -135,6 +136,7 @@ export default function AdminUsersPage() {
               <thead className="bg-surface-container border-b border-white/10">
                 <tr>
                   <th className="text-left p-4 text-sm font-medium text-on-surface-variant">头像</th>
+                  <th className="text-left p-4 text-sm font-medium text-on-surface-variant">学生名字</th>
                   <th className="text-left p-4 text-sm font-medium text-on-surface-variant">用户名</th>
                   <th className="text-left p-4 text-sm font-medium text-on-surface-variant">QQ号</th>
                   <th className="text-left p-4 text-sm font-medium text-on-surface-variant">角色</th>
@@ -150,16 +152,17 @@ export default function AdminUsersPage() {
                       {u.qqNumber ? (
                         <img 
                           src={getQQAvatar(u.qqNumber) || ''} 
-                          alt={u.username}
+                          alt={u.displayName || u.username}
                           className="w-10 h-10 rounded-full"
                         />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
-                          {u.username.charAt(0).toUpperCase()}
+                          {(u.displayName || u.username).charAt(0).toUpperCase()}
                         </div>
                       )}
                     </td>
-                    <td className="p-4 text-primary">{u.username}</td>
+                    <td className="p-4 text-primary">{u.displayName || '未命名'}</td>
+                    <td className="p-4 text-on-surface-variant">@{u.username}</td>
                     <td className="p-4 text-on-surface-variant">{u.qqNumber || '-'}</td>
                     <td className="p-4">
                       <span className={`px-2 py-1 rounded text-xs ${
@@ -213,11 +216,23 @@ export default function AdminUsersPage() {
 
             <form onSubmit={handleSaveUser} className="space-y-4">
               <div>
-                <label className="block text-sm text-on-surface-variant mb-2">用户名</label>
+                <label className="block text-sm text-on-surface-variant mb-2">用户名（登录用）</label>
                 <input
                   name="username"
                   defaultValue={editingItem?.username}
                   required
+                  placeholder="用于登录"
+                  className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-on-surface-variant mb-2">学生名字（显示用）</label>
+                <input
+                  name="displayName"
+                  defaultValue={editingItem?.displayName}
+                  required
+                  placeholder="真实姓名"
                   className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
