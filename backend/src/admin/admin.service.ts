@@ -119,6 +119,10 @@ export class AdminService {
           dockerImage: data.dockerImage || 'ubuntu:22.04',
           cpuLimit: data.cpuLimit || 1.0,
           memoryLimit: data.memoryLimit || 512,
+          startupCommand: data.startupCommand || null,
+          enableSsh: data.enableSsh !== undefined ? data.enableSsh : true,
+          enableVnc: data.enableVnc !== undefined ? data.enableVnc : false,
+          enableIde: data.enableIde !== undefined ? data.enableIde : false,
           judgeType: data.judgeType || 'manual',
           judgeScript: data.judgeScript || null,
         }
@@ -150,6 +154,10 @@ export class AdminService {
           dockerImage: data.dockerImage,
           cpuLimit: data.cpuLimit,
           memoryLimit: data.memoryLimit,
+          startupCommand: data.startupCommand !== undefined ? data.startupCommand : undefined,
+          enableSsh: data.enableSsh !== undefined ? data.enableSsh : undefined,
+          enableVnc: data.enableVnc !== undefined ? data.enableVnc : undefined,
+          enableIde: data.enableIde !== undefined ? data.enableIde : undefined,
         },
       });
       

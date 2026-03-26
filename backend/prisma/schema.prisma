@@ -87,6 +87,12 @@ model Lab {
   cpuLimit    Float    @default(1.0)
   memoryLimit Int      @default(512) // MB
   
+  // 容器配置
+  startupCommand String?  // 容器启动命令
+  enableSsh      Boolean  @default(true)
+  enableVnc      Boolean  @default(false)
+  enableIde      Boolean  @default(false)
+  
   // 判题配置
   judgeScript String?  // 判题脚本路径
   judgeType   String   @default("manual") // manual, auto
@@ -217,6 +223,7 @@ model Server {
   
   // 关联
   containers    Container[]
-  
+  labs          Lab[]
+
   @@map("servers")
 }

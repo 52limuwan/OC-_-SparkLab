@@ -4,7 +4,7 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding database...');
+  console.log('Seeding database...');
 
   // 创建管理员用户
   const adminPassword = await bcrypt.hash('admin123', 10);
@@ -20,7 +20,7 @@ async function main() {
       qqNumber: '10000',
     },
   });
-  console.log('✅ Admin user created:', admin.username);
+  console.log('Admin user created:', admin.username);
 
   // 创建测试学生
   const studentPassword = await bcrypt.hash('student123', 10);
@@ -36,7 +36,7 @@ async function main() {
       qqNumber: '10001',
     },
   });
-  console.log('✅ Student user created:', student.username);
+  console.log('Student user created:', student.username);
 
   // 创建课程
   const course1 = await prisma.course.upsert({
@@ -51,7 +51,7 @@ async function main() {
       isPublished: true,
     },
   });
-  console.log('✅ Course created:', course1.title);
+  console.log('Course created:', course1.title);
 
   const course2 = await prisma.course.upsert({
     where: { id: 'course-2' },
@@ -65,7 +65,7 @@ async function main() {
       isPublished: true,
     },
   });
-  console.log('✅ Course created:', course2.title);
+  console.log('Course created:', course2.title);
 
   // 创建实验
   const lab1 = await prisma.lab.upsert({
@@ -124,7 +124,7 @@ cat hello.txt
       judgeScript: '/judge/check_lab1.sh',
     },
   });
-  console.log('✅ Lab created:', lab1.title);
+  console.log('Lab created:', lab1.title);
 
   // 创建实验步骤
   await prisma.step.createMany({
@@ -152,7 +152,7 @@ cat hello.txt
       },
     ],
   });
-  console.log('✅ Lab steps created');
+  console.log('Lab steps created');
 
   const lab2 = await prisma.lab.upsert({
     where: { id: 'lab-2' },
@@ -182,14 +182,14 @@ cat hello.txt
       judgeType: 'manual',
     },
   });
-  console.log('✅ Lab created:', lab2.title);
+  console.log('Lab created:', lab2.title);
 
-  console.log('🎉 Seeding completed!');
+  console.log('Seeding completed!');
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Seeding failed:', e);
+    console.error('Seeding failed:', e);
     process.exit(1);
   })
   .finally(async () => {

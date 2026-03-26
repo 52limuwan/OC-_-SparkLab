@@ -112,6 +112,10 @@ export default function AdminCourseLabsPage() {
       dockerImage: formData.get('dockerImage') as string,
       cpuLimit: parseFloat(formData.get('cpuLimit') as string),
       memoryLimit: parseInt(formData.get('memoryLimit') as string),
+      startupCommand: formData.get('startupCommand') as string || null,
+      enableSsh: formData.get('enableSsh') === 'on',
+      enableVnc: formData.get('enableVnc') === 'on',
+      enableIde: formData.get('enableIde') === 'on',
     };
 
     console.log('Saving lab with data:', data);
@@ -211,34 +215,49 @@ export default function AdminCourseLabsPage() {
                 </button>
               </div>
 
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {labs.map((lab: any, index: number) => (
-                  <div key={lab.id} className="bg-surface-container rounded-lg p-4 flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold flex-shrink-0">
-                      {lab.order || index + 1}
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-primary">{lab.title}</h4>
-                      <p className="text-sm text-on-surface-variant line-clamp-1">{lab.description}</p>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-on-surface-variant">
-                        <span>{lab.difficulty === 'beginner' ? '入门' : lab.difficulty === 'intermediate' ? '进阶' : '高级'}</span>
-                        <span>{lab.points} 分</span>
-                        {lab.serverId && <span>服务器: {lab.serverId?.slice(0, 8)}...</span>}
+                  <div key={lab.id} className="bg-surface-container-high rounded-xl p-6 flex flex-col">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-sm flex-shrink-0">
+                          {lab.order || index + 1}
+                        </div>
+                        <h4 className="text-lg font-bold text-primary flex-1 pr-2">{lab.title}</h4>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleStartEdit(lab)}
-                        className="bg-surface-container-high text-primary px-3 py-2 rounded-lg hover:bg-surface-bright transition-all"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteLab(lab.id)}
-                        className="bg-red-500/20 text-red-400 px-3 py-2 rounded-lg hover:bg-red-500/30 transition-all"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    
+                    <p className="text-sm text-on-surface-variant mb-4 line-clamp-2 flex-grow">
+                      {lab.description}
+                    </p>
+                    
+                    <div className="flex items-center gap-4 text-xs text-on-surface-variant mb-4 pb-4 border-b border-white/10">
+                      <span>
+                        {lab.difficulty === 'beginner' ? '入门' : lab.difficulty === 'intermediate' ? '进阶' : '高级'}
+                      </span>
+                      <span>{lab.points} 分</span>
+                      {lab.serverId && <span>服务器已绑定</span>}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => handleStartEdit(lab)}
+                          className="bg-surface-container text-primary px-2 py-2 rounded-lg hover:bg-surface-bright transition-all flex items-center justify-center gap-1 text-xs"
+                          title="编辑实验"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">编辑</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteLab(lab.id)}
+                          className="bg-red-500/20 text-red-400 px-2 py-2 rounded-lg hover:bg-red-500/30 transition-all flex items-center justify-center gap-1 text-xs"
+                          title="删除实验"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">删除</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -407,6 +426,49 @@ export default function AdminCourseLabsPage() {
                       step="128"
                       className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-on-surface-variant mb-2">启动命令</label>
+                  <input
+                    name="startupCommand"
+                    defaultValue={editingLab.startupCommand || ''}
+                    placeholder="/bin/bash"
+                    className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="enableSsh"
+                      defaultChecked={editingLab.enableSsh !== false}
+                      id="enableSsh"
+                      className="w-4 h-4 text-primary focus:ring-primary"
+                    />
+                    <label htmlFor="enableSsh" className="text-sm text-on-surface">开启 SSH</label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="enableVnc"
+                      defaultChecked={editingLab.enableVnc}
+                      id="enableVnc"
+                      className="w-4 h-4 text-primary focus:ring-primary"
+                    />
+                    <label htmlFor="enableVnc" className="text-sm text-on-surface">开启 VNC</label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="enableIde"
+                      defaultChecked={editingLab.enableIde}
+                      id="enableIde"
+                      className="w-4 h-4 text-primary focus:ring-primary"
+                    />
+                    <label htmlFor="enableIde" className="text-sm text-on-surface">开启 IDE</label>
                   </div>
                 </div>
 

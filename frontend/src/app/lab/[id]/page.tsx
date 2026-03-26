@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { labAPI, containerAPI } from '@/lib/api';
 import { snapshotAPI } from '@/lib/api';
 import LoadingBar from '@/components/LoadingBar';
-import { Terminal, Monitor, Play, Square, Save, RotateCcw, Laptop, Camera, Globe } from 'lucide-react';
+import { Terminal, Monitor, Play, Square, Save, RotateCcw, Laptop, Camera, Globe, Info } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
@@ -20,6 +20,13 @@ export default function LabPage() {
   const [lab, setLab] = useState<any>(null);
   const [container, setContainer] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'vnc' | 'ssh' | 'rdp' | 'web'>('ssh');
+
+  // 当容器启动时，自动切换到 SSH 标签页
+  useEffect(() => {
+    if (container && lab?.enableSsh !== false) {
+      setActiveTab('ssh');
+    }
+  }, [container, lab]);
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const [command, setCommand] = useState('');
   const [webUrl, setWebUrl] = useState('');
@@ -348,37 +355,64 @@ export default function LabPage() {
           {/* 连接方式选择 */}
           <div className="flex gap-2">
             <button
-              onClick={() => setActiveTab('ssh')}
-              className={`flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm ${
+              onClick={() => lab.enableSsh !== false && setActiveTab('ssh')}
+              disabled={lab.enableSsh === false}
+              title={lab.enableSsh === false ? '本实验无需此协议' : ''}
+              className={`flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm relative ${
                 activeTab === 'ssh'
                   ? 'bg-primary text-on-primary'
+                  : lab.enableSsh === false
+                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                   : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'
               }`}
             >
               <Terminal className="w-4 h-4" />
               SSH
+              {lab.enableSsh === false && (
+                <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-50">
+                  本实验无需此协议
+                </div>
+              )}
             </button>
             <button
-              onClick={() => setActiveTab('vnc')}
-              className={`flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm ${
+              onClick={() => lab.enableVnc && setActiveTab('vnc')}
+              disabled={!lab.enableVnc}
+              title={!lab.enableVnc ? '本实验无需此协议' : ''}
+              className={`flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm relative ${
                 activeTab === 'vnc'
                   ? 'bg-primary text-on-primary'
+                  : !lab.enableVnc
+                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                   : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'
               }`}
             >
               <Monitor className="w-4 h-4" />
               VNC
+              {!lab.enableVnc && (
+                <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-50">
+                  本实验无需此协议
+                </div>
+              )}
             </button>
             <button
-              onClick={() => setActiveTab('rdp')}
-              className={`flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm ${
+              onClick={() => lab.enableIde && setActiveTab('rdp')}
+              disabled={!lab.enableIde}
+              title={!lab.enableIde ? '本实验无需此协议' : ''}
+              className={`flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm relative ${
                 activeTab === 'rdp'
                   ? 'bg-primary text-on-primary'
+                  : !lab.enableIde
+                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                   : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'
               }`}
             >
               <Laptop className="w-4 h-4" />
-              RDP
+              IDE
+              {!lab.enableIde && (
+                <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-50">
+                  本实验无需此协议
+                </div>
+              )}
             </button>
             <button
               onClick={() => setActiveTab('web')}

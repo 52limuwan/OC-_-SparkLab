@@ -39,13 +39,14 @@ export class ContainerService {
       serverId = await this.serverService.selectBestServer();
     }
 
-    // 创建容器记录
+    // 创建容器记录 - 使用临时唯一ID，避免唯一约束冲突
+    const tempContainerId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const container = await this.prisma.container.create({
       data: {
         userId,
         labId,
         serverId,
-        containerId: '', // 临时占位
+        containerId: tempContainerId,
         status: 'creating',
         cpuLimit: lab.cpuLimit,
         memoryLimit: lab.memoryLimit,
