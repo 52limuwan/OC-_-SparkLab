@@ -271,7 +271,6 @@ export default function AdminUsersPage() {
                   className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="STUDENT">学生</option>
-                  <option value="TEACHER">教师</option>
                   <option value="ADMIN">管理员</option>
                 </select>
               </div>
