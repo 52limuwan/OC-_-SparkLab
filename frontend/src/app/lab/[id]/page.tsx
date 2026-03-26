@@ -15,7 +15,7 @@ export default function LabPage() {
   const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
   const [lab, setLab] = useState<any>(null);
   const [container, setContainer] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'vnc' | 'ssh' | 'rdp'>('vnc');
+  const [activeTab, setActiveTab] = useState<'vnc' | 'ssh' | 'rdp'>('ssh');
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const [command, setCommand] = useState('');
 
@@ -102,28 +102,28 @@ export default function LabPage() {
 
   return (
     <div className="flex h-screen bg-background text-on-surface overflow-hidden">
-      {/* 左侧：实验内容 */}
-      <div className="w-1/2 border-r border-white/10 flex flex-col">
-        <div className="p-6 border-b border-white/10">
-          <h1 className="text-3xl font-bold text-primary mb-2">{lab.title}</h1>
-          <p className="text-on-surface-variant">{lab.description}</p>
+      {/* 左侧：实验内容 - 35% */}
+      <div className="w-[35%] border-r border-white/10 flex flex-col">
+        <div className="p-4 border-b border-white/10">
+          <h1 className="text-2xl font-bold text-primary mb-2">{lab.title}</h1>
+          <p className="text-sm text-on-surface-variant">{lab.description}</p>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
-          <div className="prose prose-invert max-w-none">
+          <div className="prose prose-invert prose-sm max-w-none">
             <ReactMarkdown>{lab.content || '# 实验内容\n\n暂无内容'}</ReactMarkdown>
           </div>
 
           {lab.tasks && lab.tasks.length > 0 && (
             <div className="mt-8">
-              <h3 className="text-xl font-bold text-primary mb-4">实验任务</h3>
+              <h3 className="text-lg font-bold text-primary mb-4">实验任务</h3>
               <div className="space-y-3">
                 {lab.tasks.map((task: string, index: number) => (
                   <div key={index} className="flex items-start gap-3 bg-surface-container-high rounded-lg p-4">
                     <div className="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center text-sm font-bold flex-shrink-0">
                       {index + 1}
                     </div>
-                    <p className="text-on-surface-variant flex-1">{task}</p>
+                    <p className="text-sm text-on-surface-variant flex-1">{task}</p>
                   </div>
                 ))}
               </div>
@@ -131,16 +131,16 @@ export default function LabPage() {
           )}
         </div>
 
-        <div className="p-6 border-t border-white/10 flex gap-3">
+        <div className="p-4 border-t border-white/10 flex gap-3">
           <button
             onClick={() => router.push('/dashboard')}
-            className="flex-1 bg-surface-container text-on-surface-variant px-4 py-3 rounded-lg hover:bg-surface-bright transition-all"
+            className="flex-1 bg-surface-container text-on-surface-variant px-4 py-2.5 rounded-lg hover:bg-surface-bright transition-all text-sm"
           >
             返回大厅
           </button>
           <button
             onClick={handleSubmit}
-            className="flex-1 bg-primary text-on-primary px-4 py-3 rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2"
+            className="flex-1 bg-primary text-on-primary px-4 py-2.5 rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 text-sm"
           >
             <Save className="w-4 h-4" />
             提交实验
@@ -148,8 +148,8 @@ export default function LabPage() {
         </div>
       </div>
 
-      {/* 右侧：VNC/SSH 终端 */}
-      <div className="w-1/2 flex flex-col">
+      {/* 右侧：VNC/SSH/RDP 终端 - 65% */}
+      <div className="w-[65%] flex flex-col">
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
           <div className="flex gap-2">
             <button
