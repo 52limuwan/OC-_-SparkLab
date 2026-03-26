@@ -102,7 +102,7 @@ export default function Sidebar() {
         </button>
 
         {user && (
-          <div className="mx-2 mt-4 flex items-center gap-3 px-2 py-3 rounded-xl bg-surface-container">
+          <Link href="/profile" className="mx-2 mt-4 flex items-center gap-3 px-2 py-3 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors cursor-pointer">
             {(() => {
               const avatar = getUserAvatarOrInitial(user);
               return avatar.type === 'image' ? (
@@ -121,7 +121,7 @@ export default function Sidebar() {
               <p className="text-xs font-bold text-primary truncate">{user.username}</p>
               <p className="text-[10px] text-on-surface-variant truncate">{user.email}</p>
             </div>
-          </div>
+          </Link>
         )}
       </div>
     </aside>

@@ -154,20 +154,91 @@ export class AdminService {
       totalLabs,
       activeContainers,
       totalSubmissions,
+      recentUsers,
+      recentContainers,
+      courseStats,
     ] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.course.count(),
       this.prisma.lab.count(),
       this.prisma.container.count({ where: { status: 'running' } }),
       this.prisma.submission.count(),
+      // 最近活跃的用户
+      this.prisma.user.findMany({
+        take: 5,
+        orderBy: { lastActiveAt: 'desc' },
+        select: {
+          id: true,
+          username: true,
+          qqNumber: true,
+          role: true,
+          lastActiveAt: true,
+          _count: {
+            select: {
+              containers: true,
+              submissions: true,
+            },
+          },
+        },
+      }),
+      // 最近创建的容器
+      this.prisma.container.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: {
+              username: true,
+            },
+          },
+          lab: {
+            select: {
+              title: true,
+            },
+          },
+        },
+      }),
+      // 课程统计
+      this.prisma.course.findMany({
+        select: {
+          id: true,
+          title: true,
+          _count: {
+            select: {
+              enrollments: true,
+              labs: true,
+            },
+          },
+        },
+        orderBy: {
+          enrollments: {
+            _count: 'desc',
+          },
+        },
+        take: 5,
+      }),
     ]);
+
+    // 计算容器总数
+    const totalContainers = await this.prisma.container.count();
+
+    // 按状态统计容器
+    const containersByStatus = await this.prisma.container.groupBy({
+      by: ['status'],
+      _count: true,
+    });
 
     return {
       totalUsers,
       totalCourses,
       totalLabs,
       activeContainers,
+      totalContainers,
       totalSubmissions,
+      recentUsers,
+      recentContainers,
+      courseStats,
+      containersByStatus,
     };
   }
 }

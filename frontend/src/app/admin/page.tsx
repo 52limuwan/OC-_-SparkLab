@@ -4,21 +4,14 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { adminAPI, courseAPI } from '@/lib/api';
-import Sidebar from '@/components/Sidebar';
+import Sidebar from '@/components/AdminSidebar';
 import LoadingBar from '@/components/LoadingBar';
 import { Users, BookOpen, Container, Activity, Trash2, Edit, Plus, X } from 'lucide-react';
 
 export default function AdminPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, isLoggingOut, checkAuth } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'courses' | 'labs' | 'containers'>('stats');
   const [stats, setStats] = useState<any>({});
-  const [users, setUsers] = useState<any[]>([]);
-  const [courses, setCourses] = useState<any[]>([]);
-  const [containers, setContainers] = useState<any[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<'course' | 'lab' | 'user'>('course');
-  const [editingItem, setEditingItem] = useState<any>(null);
 
   useEffect(() => {
     checkAuth();
@@ -36,113 +29,14 @@ export default function AdminPage() {
     if (isAuthenticated && user?.role === 'ADMIN') {
       loadData();
     }
-  }, [isAuthenticated, user, activeTab]);
+  }, [isAuthenticated, user]);
 
   const loadData = async () => {
     try {
-      if (activeTab === 'stats') {
-        const res = await adminAPI.getStats();
-        setStats(res.data);
-      } else if (activeTab === 'users') {
-        const res = await adminAPI.getAllUsers();
-        setUsers(res.data);
-      } else if (activeTab === 'courses') {
-        const res = await courseAPI.getAll();
-        setCourses(res.data);
-      } else if (activeTab === 'containers') {
-        const res = await adminAPI.getAllContainers();
-        setContainers(res.data);
-      }
+      const res = await adminAPI.getStats();
+      setStats(res.data);
     } catch (error) {
       console.error('Failed to load data:', error);
-    }
-  };
-
-  const handleDeleteUser = async (id: string) => {
-    if (!confirm('确定要删除此用户吗？')) return;
-    try {
-      await adminAPI.deleteUser(id);
-      loadData();
-    } catch (error) {
-      console.error('Failed to delete user:', error);
-    }
-  };
-
-  const handleDeleteCourse = async (id: string) => {
-    if (!confirm('确定要删除此课程吗？')) return;
-    try {
-      await adminAPI.deleteCourse(id);
-      loadData();
-    } catch (error) {
-      console.error('Failed to delete course:', error);
-    }
-  };
-
-  const handleForceStop = async (id: string) => {
-    if (!confirm('确定要强制停止此容器吗？')) return;
-    try {
-      await adminAPI.forceStopContainer(id);
-      loadData();
-    } catch (error) {
-      console.error('Failed to stop container:', error);
-    }
-  };
-
-  const handleSaveCourse = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const data = {
-      title: formData.get('title'),
-      description: formData.get('description'),
-      difficulty: formData.get('difficulty'),
-      duration: parseInt(formData.get('duration') as string),
-    };
-
-    try {
-      if (editingItem) {
-        await adminAPI.updateCourse(editingItem.id, data);
-      } else {
-        await adminAPI.createCourse(data);
-      }
-      setShowModal(false);
-      setEditingItem(null);
-      loadData();
-    } catch (error) {
-      console.error('Failed to save course:', error);
-    }
-  };
-
-  const handleSaveUser = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const password = formData.get('password') as string;
-    const data: any = {
-      username: formData.get('username') as string,
-      role: formData.get('role') as string,
-      qqNumber: formData.get('qqNumber') as string,
-    };
-
-    // 只有在密码不为空时才包含密码字段
-    if (password) {
-      data.password = password;
-    }
-
-    try {
-      if (editingItem) {
-        await adminAPI.updateUser(editingItem.id, data);
-      } else {
-        if (!password) {
-          alert('创建新用户时密码不能为空');
-          return;
-        }
-        await adminAPI.createUser(data);
-      }
-      setShowModal(false);
-      setEditingItem(null);
-      loadData();
-    } catch (error) {
-      console.error('Failed to save user:', error);
-      alert(editingItem ? '更新用户失败' : '创建用户失败，请检查用户名或QQ号是否已存在');
     }
   };
 
@@ -171,429 +65,210 @@ export default function AdminPage() {
         <div className="p-8 flex-1">
           <div className="mb-10">
             <h2 className="text-4xl font-extrabold font-headline tracking-tight text-primary mb-2">
-              管理员控制台
+              统计概览
             </h2>
             <p className="text-on-surface-variant text-lg">
-              管理用户、课程、实验和容器实例
+              实时监控系统运行状态和用户活动
             </p>
           </div>
 
-          {/* 标签页 */}
-          <div className="flex gap-2 mb-8 border-b border-white/10">
-            {[
-              { key: 'stats', label: '统计概览', icon: Activity },
-              { key: 'users', label: '用户管理', icon: Users },
-              { key: 'courses', label: '课程管理', icon: BookOpen },
-              { key: 'containers', label: '容器管理', icon: Container },
-            ].map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key as any)}
-                className={`flex items-center gap-2 px-6 py-3 transition-all ${
-                  activeTab === tab.key
-                    ? 'text-primary border-b-2 border-primary'
-                    : 'text-on-surface-variant hover:text-primary'
-                }`}
-              >
-                <tab.icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
           {/* 统计概览 */}
-          {activeTab === 'stats' && (
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-              <div className="bg-surface-container-high rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <Users className="w-5 h-5 text-primary" />
-                  <span className="text-sm text-on-surface-variant">总用户数</span>
-                </div>
-                <div className="text-3xl font-bold text-primary">{stats.totalUsers || 0}</div>
-              </div>
-
-              <div className="bg-surface-container-high rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <BookOpen className="w-5 h-5 text-primary" />
-                  <span className="text-sm text-on-surface-variant">总课程数</span>
-                </div>
-                <div className="text-3xl font-bold text-primary">{stats.totalCourses || 0}</div>
-              </div>
-
-              <div className="bg-surface-container-high rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <Activity className="w-5 h-5 text-primary" />
-                  <span className="text-sm text-on-surface-variant">总实验数</span>
-                </div>
-                <div className="text-3xl font-bold text-primary">{stats.totalLabs || 0}</div>
-              </div>
-
-              <div className="bg-surface-container-high rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <Container className="w-5 h-5 text-primary" />
-                  <span className="text-sm text-on-surface-variant">运行容器</span>
-                </div>
-                <div className="text-3xl font-bold text-primary">{stats.activeContainers || 0}</div>
-              </div>
-
-              <div className="bg-surface-container-high rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <Activity className="w-5 h-5 text-primary" />
-                  <span className="text-sm text-on-surface-variant">总提交数</span>
-                </div>
-                <div className="text-3xl font-bold text-primary">{stats.totalSubmissions || 0}</div>
-              </div>
-            </div>
-          )}
-
-          {/* 用户管理 */}
-          {activeTab === 'users' && (
-            <div>
-              <div className="mb-4 flex justify-end">
-                <button
-                  onClick={() => {
-                    setModalType('user');
-                    setEditingItem(null);
-                    setShowModal(true);
-                  }}
-                  className="bg-primary text-on-primary px-4 py-2 rounded-lg flex items-center gap-2 hover:opacity-90 transition-all"
-                >
-                  <Plus className="w-4 h-4" />
-                  添加用户
-                </button>
-              </div>
-
-              <div className="bg-surface-container-high rounded-xl overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-surface-container border-b border-white/10">
-                    <tr>
-                      <th className="text-left p-4 text-sm font-medium text-on-surface-variant">头像</th>
-                      <th className="text-left p-4 text-sm font-medium text-on-surface-variant">用户名</th>
-                      <th className="text-left p-4 text-sm font-medium text-on-surface-variant">QQ号</th>
-                      <th className="text-left p-4 text-sm font-medium text-on-surface-variant">角色</th>
-                      <th className="text-left p-4 text-sm font-medium text-on-surface-variant">容器数</th>
-                      <th className="text-left p-4 text-sm font-medium text-on-surface-variant">提交数</th>
-                      <th className="text-left p-4 text-sm font-medium text-on-surface-variant">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((u) => (
-                      <tr key={u.id} className="border-b border-white/5 hover:bg-surface-container transition-colors">
-                        <td className="p-4">
-                          {u.qqNumber ? (
-                            <img 
-                              src={getQQAvatar(u.qqNumber) || ''} 
-                              alt={u.username}
-                              className="w-10 h-10 rounded-full"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
-                              {u.username.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                        </td>
-                        <td className="p-4 text-primary">{u.username}</td>
-                        <td className="p-4 text-on-surface-variant">{u.qqNumber || '-'}</td>
-                        <td className="p-4">
-                          <span className={`px-2 py-1 rounded text-xs ${
-                            u.role === 'ADMIN' ? 'bg-primary/20 text-primary' : 'bg-surface-container text-on-surface-variant'
-                          }`}>
-                            {u.role}
-                          </span>
-                        </td>
-                        <td className="p-4 text-on-surface-variant">{u._count?.containers || 0}</td>
-                        <td className="p-4 text-on-surface-variant">{u._count?.submissions || 0}</td>
-                        <td className="p-4">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => {
-                                setModalType('user');
-                                setEditingItem(u);
-                                setShowModal(true);
-                              }}
-                              className="text-primary hover:text-primary/80 transition-colors"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteUser(u.id)}
-                              className="text-red-400 hover:text-red-300 transition-colors"
-                              disabled={u.role === 'ADMIN'}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* 课程管理 */}
-          {activeTab === 'courses' && (
-            <div>
-              <div className="mb-4 flex justify-end">
-                <button
-                  onClick={() => {
-                    setModalType('course');
-                    setEditingItem(null);
-                    setShowModal(true);
-                  }}
-                  className="bg-primary text-on-primary px-4 py-2 rounded-lg flex items-center gap-2 hover:opacity-90 transition-all"
-                >
-                  <Plus className="w-4 h-4" />
-                  新建课程
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {courses.map((course) => (
-                  <div key={course.id} className="bg-surface-container-high rounded-xl p-6">
-                    <h4 className="text-lg font-bold text-primary mb-2">{course.title}</h4>
-                    <p className="text-sm text-on-surface-variant mb-4 line-clamp-2">
-                      {course.description}
-                    </p>
-                    <div className="flex items-center justify-between text-xs text-on-surface-variant mb-4">
-                      <span>难度: {course.difficulty}</span>
-                      <span>{course.duration}小时</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setModalType('course');
-                          setEditingItem(course);
-                          setShowModal(true);
-                        }}
-                        className="flex-1 bg-surface-container text-primary px-3 py-2 rounded-lg hover:bg-surface-bright transition-all flex items-center justify-center gap-1"
-                      >
-                        <Edit className="w-3 h-3" />
-                        编辑
-                      </button>
-                      <button
-                        onClick={() => handleDeleteCourse(course.id)}
-                        className="flex-1 bg-red-500/20 text-red-400 px-3 py-2 rounded-lg hover:bg-red-500/30 transition-all flex items-center justify-center gap-1"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        删除
-                      </button>
-                    </div>
+          <div className="space-y-8">
+              {/* 核心指标 */}
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                <div className="bg-surface-container-high rounded-xl p-6 hover:bg-surface-bright transition-all">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Users className="w-5 h-5 text-primary" />
+                    <span className="text-sm text-on-surface-variant">总用户数</span>
                   </div>
-                ))}
+                  <div className="text-3xl font-bold text-primary">{stats.totalUsers || 0}</div>
+                </div>
+
+                <div className="bg-surface-container-high rounded-xl p-6 hover:bg-surface-bright transition-all">
+                  <div className="flex items-center gap-3 mb-2">
+                    <BookOpen className="w-5 h-5 text-primary" />
+                    <span className="text-sm text-on-surface-variant">总课程数</span>
+                  </div>
+                  <div className="text-3xl font-bold text-primary">{stats.totalCourses || 0}</div>
+                </div>
+
+                <div className="bg-surface-container-high rounded-xl p-6 hover:bg-surface-bright transition-all">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Activity className="w-5 h-5 text-primary" />
+                    <span className="text-sm text-on-surface-variant">总实验数</span>
+                  </div>
+                  <div className="text-3xl font-bold text-primary">{stats.totalLabs || 0}</div>
+                </div>
+
+                <div className="bg-surface-container-high rounded-xl p-6 hover:bg-surface-bright transition-all">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Container className="w-5 h-5 text-green-400" />
+                    <span className="text-sm text-on-surface-variant">运行容器</span>
+                  </div>
+                  <div className="text-3xl font-bold text-green-400">{stats.activeContainers || 0}</div>
+                </div>
+
+                <div className="bg-surface-container-high rounded-xl p-6 hover:bg-surface-bright transition-all">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Activity className="w-5 h-5 text-primary" />
+                    <span className="text-sm text-on-surface-variant">总提交数</span>
+                  </div>
+                  <div className="text-3xl font-bold text-primary">{stats.totalSubmissions || 0}</div>
+                </div>
+              </div>
+
+              {/* 容器状态分布 */}
+              <div className="bg-surface-container-high rounded-xl p-6">
+                <h3 className="text-xl font-bold text-primary mb-4">容器状态分布</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {stats.containersByStatus?.map((item: any) => (
+                    <div key={item.status} className="bg-surface-container rounded-lg p-4">
+                      <div className="text-sm text-on-surface-variant mb-1">
+                        {item.status === 'running' ? '运行中' : 
+                         item.status === 'stopped' ? '已停止' : 
+                         item.status === 'creating' ? '创建中' : '错误'}
+                      </div>
+                      <div className={`text-2xl font-bold ${
+                        item.status === 'running' ? 'text-green-400' : 
+                        item.status === 'error' ? 'text-red-400' : 'text-on-surface-variant'
+                      }`}>
+                        {item._count}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* 最近活跃用户 */}
+                <div className="bg-surface-container-high rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-primary">最近活跃用户</h3>
+                    <button
+                      onClick={() => router.push('/admin/users')}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      查看全部 →
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {stats.recentUsers?.map((user: any) => (
+                      <div key={user.id} className="flex items-center gap-3 p-3 bg-surface-container rounded-lg hover:bg-surface-bright transition-all">
+                        {user.qqNumber ? (
+                          <img 
+                            src={getQQAvatar(user.qqNumber) || ''} 
+                            alt={user.username}
+                            className="w-10 h-10 rounded-full"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                            {user.username.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <div className="text-sm font-bold text-primary">{user.username}</div>
+                          <div className="text-xs text-on-surface-variant">
+                            {user._count.containers} 容器 · {user._count.submissions} 提交
+                          </div>
+                        </div>
+                        <div className="text-xs text-on-surface-variant">
+                          {new Date(user.lastActiveAt).toLocaleDateString('zh-CN')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 热门课程 */}
+                <div className="bg-surface-container-high rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-primary">热门课程</h3>
+                    <button
+                      onClick={() => router.push('/admin/courses')}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      查看全部 →
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {stats.courseStats?.map((course: any, index: number) => (
+                      <div key={course.id} className="flex items-center gap-3 p-3 bg-surface-container rounded-lg hover:bg-surface-bright transition-all">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+                          index === 0 ? 'bg-yellow-500/20 text-yellow-400' :
+                          index === 1 ? 'bg-gray-400/20 text-gray-400' :
+                          index === 2 ? 'bg-orange-500/20 text-orange-400' :
+                          'bg-surface-container-lowest text-on-surface-variant'
+                        }`}>
+                          {index + 1}
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-sm font-bold text-primary">{course.title}</div>
+                          <div className="text-xs text-on-surface-variant">
+                            {course._count.labs} 实验
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-bold text-primary">{course._count.enrollments}</div>
+                          <div className="text-xs text-on-surface-variant">注册</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 最近容器活动 */}
+              <div className="bg-surface-container-high rounded-xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-primary">最近容器活动</h3>
+                  <button
+                    onClick={() => router.push('/admin/containers')}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    查看全部 →
+                  </button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="border-b border-white/10">
+                      <tr>
+                        <th className="text-left p-3 text-sm font-medium text-on-surface-variant">容器ID</th>
+                        <th className="text-left p-3 text-sm font-medium text-on-surface-variant">用户</th>
+                        <th className="text-left p-3 text-sm font-medium text-on-surface-variant">实验</th>
+                        <th className="text-left p-3 text-sm font-medium text-on-surface-variant">状态</th>
+                        <th className="text-left p-3 text-sm font-medium text-on-surface-variant">创建时间</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stats.recentContainers?.map((container: any) => (
+                        <tr key={container.id} className="border-b border-white/5 hover:bg-surface-container transition-colors">
+                          <td className="p-3 text-primary font-mono text-xs">{container.id.slice(0, 8)}</td>
+                          <td className="p-3 text-on-surface-variant">{container.user?.username}</td>
+                          <td className="p-3 text-on-surface-variant">{container.lab?.title}</td>
+                          <td className="p-3">
+                            <span className={`px-2 py-1 rounded text-xs ${
+                              container.status === 'running' ? 'bg-green-500/20 text-green-400' : 
+                              container.status === 'stopped' ? 'bg-gray-500/20 text-gray-400' :
+                              container.status === 'creating' ? 'bg-blue-500/20 text-blue-400' :
+                              'bg-red-500/20 text-red-400'
+                            }`}>
+                              {container.status === 'running' ? '运行中' : 
+                               container.status === 'stopped' ? '已停止' : 
+                               container.status === 'creating' ? '创建中' : '错误'}
+                            </span>
+                          </td>
+                          <td className="p-3 text-on-surface-variant text-xs">
+                            {new Date(container.createdAt).toLocaleString('zh-CN')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          )}
-
-          {/* 容器管理 */}
-          {activeTab === 'containers' && (
-            <div className="bg-surface-container-high rounded-xl overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-surface-container border-b border-white/10">
-                  <tr>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">容器ID</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">用户</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">实验</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">状态</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">创建时间</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {containers.map((c) => (
-                    <tr key={c.id} className="border-b border-white/5 hover:bg-surface-container transition-colors">
-                      <td className="p-4 text-primary font-mono text-xs">{c.id.slice(0, 8)}</td>
-                      <td className="p-4 text-on-surface-variant">{c.user?.username}</td>
-                      <td className="p-4 text-on-surface-variant">{c.lab?.title}</td>
-                      <td className="p-4">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          c.status === 'running' ? 'bg-green-500/20 text-green-400' : 'bg-surface-container text-on-surface-variant'
-                        }`}>
-                          {c.status}
-                        </span>
-                      </td>
-                      <td className="p-4 text-on-surface-variant text-xs">
-                        {new Date(c.createdAt).toLocaleString('zh-CN')}
-                      </td>
-                      <td className="p-4">
-                        {c.status === 'running' && (
-                          <button
-                            onClick={() => handleForceStop(c.id)}
-                            className="text-red-400 hover:text-red-300 transition-colors text-sm"
-                          >
-                            强制停止
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
       </main>
-
-      {/* 模态框 - 课程 */}
-      {showModal && modalType === 'course' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-surface-container-high rounded-xl p-6 w-full max-w-md">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-primary">
-                {editingItem ? '编辑课程' : '新建课程'}
-              </h3>
-              <button onClick={() => setShowModal(false)} className="text-on-surface-variant hover:text-primary">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveCourse} className="space-y-4">
-              <div>
-                <label className="block text-sm text-on-surface-variant mb-2">课程名称</label>
-                <input
-                  name="title"
-                  defaultValue={editingItem?.title}
-                  required
-                  className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-on-surface-variant mb-2">课程描述</label>
-                <textarea
-                  name="description"
-                  defaultValue={editingItem?.description}
-                  required
-                  rows={3}
-                  className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-on-surface-variant mb-2">难度</label>
-                <select
-                  name="difficulty"
-                  defaultValue={editingItem?.difficulty || 'BEGINNER'}
-                  className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="BEGINNER">初级</option>
-                  <option value="INTERMEDIATE">中级</option>
-                  <option value="ADVANCED">高级</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm text-on-surface-variant mb-2">时长（小时）</label>
-                <input
-                  name="duration"
-                  type="number"
-                  defaultValue={editingItem?.duration || 10}
-                  required
-                  className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 bg-surface-container text-on-surface-variant px-4 py-2 rounded-lg hover:bg-surface-bright transition-all"
-                >
-                  取消
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 bg-primary text-on-primary px-4 py-2 rounded-lg hover:opacity-90 transition-all"
-                >
-                  保存
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* 模态框 - 用户 */}
-      {showModal && modalType === 'user' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-surface-container-high rounded-xl p-6 w-full max-w-md">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-primary">
-                {editingItem ? '编辑用户' : '添加用户'}
-              </h3>
-              <button onClick={() => setShowModal(false)} className="text-on-surface-variant hover:text-primary">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveUser} className="space-y-4">
-              <div>
-                <label className="block text-sm text-on-surface-variant mb-2">用户名</label>
-                <input
-                  name="username"
-                  defaultValue={editingItem?.username}
-                  required
-                  className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-on-surface-variant mb-2">
-                  密码 {editingItem && <span className="text-xs">(留空则不修改)</span>}
-                </label>
-                <input
-                  name="password"
-                  type="password"
-                  required={!editingItem}
-                  placeholder={editingItem ? '留空则不修改密码' : ''}
-                  className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-on-surface-variant mb-2">QQ号（选填）</label>
-                <input
-                  name="qqNumber"
-                  type="text"
-                  defaultValue={editingItem?.qqNumber}
-                  placeholder="用于获取QQ头像"
-                  className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-on-surface-variant mb-2">角色</label>
-                <select
-                  name="role"
-                  defaultValue={editingItem?.role || 'STUDENT'}
-                  className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="STUDENT">学生</option>
-                  <option value="TEACHER">教师</option>
-                  <option value="ADMIN">管理员</option>
-                </select>
-              </div>
-
-              <div className="flex gap-2 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 bg-surface-container text-on-surface-variant px-4 py-2 rounded-lg hover:bg-surface-bright transition-all"
-                >
-                  取消
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 bg-primary text-on-primary px-4 py-2 rounded-lg hover:opacity-90 transition-all"
-                >
-                  {editingItem ? '保存' : '创建'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

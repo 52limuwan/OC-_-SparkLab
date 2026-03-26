@@ -1,7 +1,7 @@
-import { Controller, Post, Get, Body, HttpCode, HttpStatus, UseGuards, Req, Res } from '@nestjs/common';
+import { Controller, Post, Get, Put, Body, HttpCode, HttpStatus, UseGuards, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, UpdateProfileDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
@@ -73,5 +73,41 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   check(@Req() req) {
     return { authenticated: true, user: req.user };
+  }
+
+  @Put('profile')
+  @HttpCode(HttpStatus.OK)
+  async updateProfile(@Req() req, @Body() updateProfileDto: UpdateProfileDto) {
+    try {
+      const token = req.cookies?.access_token;
+      if (!token) {
+        throw new UnauthorizedException('Not authenticated');
+      }
+
+      const jwt = require('jsonwebtoken');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      
+      return this.authService.updateProfile(decoded.sub, updateProfileDto);
+    } catch (error) {
+      throw new UnauthorizedException('Invalid token');
+    }
+  }
+
+  @Get('stats')
+  @HttpCode(HttpStatus.OK)
+  async getUserStats(@Req() req) {
+    try {
+      const token = req.cookies?.access_token;
+      if (!token) {
+        throw new UnauthorizedException('Not authenticated');
+      }
+
+      const jwt = require('jsonwebtoken');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      
+      return this.authService.getUserStats(decoded.sub);
+    } catch (error) {
+      throw new UnauthorizedException('Invalid token');
+    }
   }
 }

@@ -25,3 +25,22 @@ export class LoginDto {
   @IsString()
   password: string;
 }
+
+export class UpdateProfileDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  username?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  qqNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  avatar?: string;
+}

@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/co
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
-import { RegisterDto, LoginDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, UpdateProfileDto } from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -70,6 +70,7 @@ export class AuthService {
       user: {
         id: user.id,
         username: user.username,
+        email: user.email,
         role: user.role,
         qqNumber: user.qqNumber,
       },
@@ -96,6 +97,7 @@ export class AuthService {
       select: {
         id: true,
         username: true,
+        email: true,
         role: true,
         avatar: true,
         qqNumber: true,
@@ -109,5 +111,118 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
+    // 检查用户名是否已被占用
+    if (updateProfileDto.username) {
+      const existingUser = await this.prisma.user.findFirst({
+        where: {
+          username: updateProfileDto.username,
+          NOT: { id: userId },
+        },
+      });
+
+      if (existingUser) {
+        throw new ConflictException('Username already exists');
+      }
+    }
+
+    // 检查邮箱是否已被占用
+    if (updateProfileDto.email) {
+      const existingUser = await this.prisma.user.findFirst({
+        where: {
+          email: updateProfileDto.email,
+          NOT: { id: userId },
+        },
+      });
+
+      if (existingUser) {
+        throw new ConflictException('Email already exists');
+      }
+    }
+
+    // 检查QQ号是否已被占用
+    if (updateProfileDto.qqNumber) {
+      const existingUser = await this.prisma.user.findFirst({
+        where: {
+          qqNumber: updateProfileDto.qqNumber,
+          NOT: { id: userId },
+        },
+      });
+
+      if (existingUser) {
+        throw new ConflictException('QQ number already exists');
+      }
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: updateProfileDto,
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
+        avatar: true,
+        qqNumber: true,
+        createdAt: true,
+        lastActiveAt: true,
+      },
+    });
+
+    return user;
+  }
+
+  async getUserStats(userId: string) {
+    // 获取已注册课程数
+    const enrolledCourses = await this.prisma.enrollment.count({
+      where: { userId },
+    });
+
+    // 获取完成的实验数
+    const completedLabs = await this.prisma.submission.count({
+      where: {
+        userId,
+        status: 'passed',
+      },
+    });
+
+    // 获取总积分
+    const submissions = await this.prisma.submission.findMany({
+      where: {
+        userId,
+        status: 'passed',
+      },
+      select: {
+        score: true,
+      },
+    });
+
+    const totalScore = submissions.reduce((sum, sub) => sum + sub.score, 0);
+
+    // 获取学习时长（基于容器使用时间）
+    const containers = await this.prisma.container.findMany({
+      where: { userId },
+      select: {
+        createdAt: true,
+        stoppedAt: true,
+      },
+    });
+
+    let studyTime = 0;
+    containers.forEach((container) => {
+      if (container.stoppedAt) {
+        const duration = container.stoppedAt.getTime() - container.createdAt.getTime();
+        studyTime += Math.floor(duration / 1000 / 60); // 转换为分钟
+      }
+    });
+
+    return {
+      enrolledCourses,
+      completedLabs,
+      totalScore,
+      studyTime,
+    };
   }
 }
