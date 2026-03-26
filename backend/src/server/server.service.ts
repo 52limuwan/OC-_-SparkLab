@@ -337,13 +337,31 @@ export class ServerService {
       
       const fullImageName = `${imageName}:${tag}`;
       
-      // 拉取镜像（这是一个流式操作）
+      // 拉取镜像并收集日志
+      const logs: string[] = [];
+      
       await new Promise((resolve, reject) => {
         docker.pull(fullImageName, (err: any, stream: any) => {
           if (err) {
             reject(err);
             return;
           }
+          
+          // 监听流数据
+          stream.on('data', (chunk: Buffer) => {
+            try {
+              const data = JSON.parse(chunk.toString());
+              if (data.status) {
+                const logLine = data.id 
+                  ? `${data.status}: ${data.id} ${data.progress || ''}`
+                  : data.status;
+                logs.push(logLine);
+                this.logger.debug(logLine);
+              }
+            } catch (e) {
+              // 忽略解析错误
+            }
+          });
           
           docker.modem.followProgress(stream, (err: any, output: any) => {
             if (err) {
@@ -355,7 +373,11 @@ export class ServerService {
         });
       });
       
-      return { message: 'Image pulled successfully', image: fullImageName };
+      return { 
+        message: 'Image pulled successfully', 
+        image: fullImageName,
+        logs: logs.slice(-20), // 返回最后20条日志
+      };
     } catch (error) {
       this.logger.error(`拉取镜像失败: ${error.message}`);
       throw new BadRequestException(`Failed to pull image: ${error.message}`);
@@ -386,13 +408,34 @@ export class ServerService {
       pack.entry({ name: 'Dockerfile' }, dockerfile);
       pack.finalize();
       
-      // 构建镜像
+      // 构建镜像并收集日志
+      const logs: string[] = [];
+      
       await new Promise((resolve, reject) => {
         docker.buildImage(pack, { t: fullImageName }, (err: any, stream: any) => {
           if (err) {
             reject(err);
             return;
           }
+          
+          // 监听流数据
+          stream.on('data', (chunk: Buffer) => {
+            try {
+              const data = JSON.parse(chunk.toString());
+              if (data.stream) {
+                const logLine = data.stream.trim();
+                if (logLine) {
+                  logs.push(logLine);
+                  this.logger.debug(logLine);
+                }
+              } else if (data.status) {
+                logs.push(data.status);
+                this.logger.debug(data.status);
+              }
+            } catch (e) {
+              // 忽略解析错误
+            }
+          });
           
           docker.modem.followProgress(stream, (err: any, output: any) => {
             if (err) {
@@ -404,57 +447,14 @@ export class ServerService {
         });
       });
       
-      return { message: 'Image built successfully', image: fullImageName };
+      return { 
+        message: 'Image built successfully', 
+        image: fullImageName,
+        logs: logs.slice(-30), // 返回最后30条日志
+      };
     } catch (error) {
       this.logger.error(`构建镜像失败: ${error.message}`);
       throw new BadRequestException(`Failed to build image: ${error.message}`);
-    }
-  }
-
-  // Docker Compose Up
-  async composeUp(serverId: string, composeContent: string, projectName: string) {
-    const server = await this.findOne(serverId);
-    
-    if (server.status !== 'online') {
-      throw new BadRequestException('Server is offline');
-    }
-
-    try {
-      this.logger.log(`启动 Compose 项目 ${projectName} 在服务器 ${serverId}`);
-      
-      // 注意：Docker SDK 不直接支持 docker-compose
-      // 这里需要通过 Agent 执行命令或使用其他方式
-      // 简化实现：返回提示信息
-      
-      return { 
-        message: 'Compose up command prepared',
-        note: 'Docker Compose operations require docker-compose to be installed on the server',
-        projectName,
-      };
-    } catch (error) {
-      this.logger.error(`启动 Compose 失败: ${error.message}`);
-      throw new BadRequestException(`Failed to start compose: ${error.message}`);
-    }
-  }
-
-  // Docker Compose Down
-  async composeDown(serverId: string, projectName: string) {
-    const server = await this.findOne(serverId);
-    
-    if (server.status !== 'online') {
-      throw new BadRequestException('Server is offline');
-    }
-
-    try {
-      this.logger.log(`停止 Compose 项目 ${projectName} 在服务器 ${serverId}`);
-      
-      return { 
-        message: 'Compose down command prepared',
-        projectName,
-      };
-    } catch (error) {
-      this.logger.error(`停止 Compose 失败: ${error.message}`);
-      throw new BadRequestException(`Failed to stop compose: ${error.message}`);
     }
   }
 

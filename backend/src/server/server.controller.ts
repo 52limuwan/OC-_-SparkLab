@@ -77,24 +77,6 @@ export class ServerController {
     return this.serverService.buildImage(serverId, body.dockerfile, body.imageName, body.tag);
   }
 
-  @Post(':id/compose/up')
-  @Roles('ADMIN')
-  async composeUp(
-    @Param('id') serverId: string,
-    @Body() body: { composeContent: string; projectName: string },
-  ) {
-    return this.serverService.composeUp(serverId, body.composeContent, body.projectName);
-  }
-
-  @Post(':id/compose/down')
-  @Roles('ADMIN')
-  async composeDown(
-    @Param('id') serverId: string,
-    @Body() body: { projectName: string },
-  ) {
-    return this.serverService.composeDown(serverId, body.projectName);
-  }
-
   @Post(':id/containers/:containerId/start')
   @Roles('ADMIN')
   async startContainerPost(

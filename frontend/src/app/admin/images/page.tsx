@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import api from '@/lib/api';
 import AdminSidebar from '@/components/AdminSidebar';
 import LoadingBar from '@/components/LoadingBar';
-import { Server, Image as ImageIcon, Download, Trash2, Plus, FileCode, Layers } from 'lucide-react';
+import { Server, Image as ImageIcon, Download, Trash2, Plus, FileCode } from 'lucide-react';
 
 interface ServerInfo {
   id: string;
@@ -31,15 +31,14 @@ export default function AdminImagesPage() {
   const [selectedServer, setSelectedServer] = useState<string>('');
   const [showPullModal, setShowPullModal] = useState(false);
   const [showBuildModal, setShowBuildModal] = useState(false);
-  const [showComposeModal, setShowComposeModal] = useState(false);
   const [pullImageName, setPullImageName] = useState('');
   const [pullTag, setPullTag] = useState('latest');
   const [buildImageName, setBuildImageName] = useState('');
   const [buildTag, setBuildTag] = useState('latest');
   const [dockerfile, setDockerfile] = useState('FROM ubuntu:latest\nRUN apt-get update\nCMD ["/bin/bash"]');
-  const [composeContent, setComposeContent] = useState('version: "3"\nservices:\n  web:\n    image: nginx:latest\n    ports:\n      - "80:80"');
-  const [projectName, setProjectName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [pullLogs, setPullLogs] = useState<string[]>([]);
+  const [buildLogs, setBuildLogs] = useState<string[]>([]);
 
   useEffect(() => {
     checkAuth();
@@ -99,18 +98,30 @@ export default function AdminImagesPage() {
     if (!pullImageName || !selectedServer) return;
     
     setLoading(true);
+    setPullLogs(['开始拉取镜像...']);
     try {
-      await api.post(`/servers/${selectedServer}/images/pull`, {
+      const { data } = await api.post(`/servers/${selectedServer}/images/pull`, {
         imageName: pullImageName,
         tag: pullTag,
       });
-      alert('镜像拉取成功！');
-      setShowPullModal(false);
-      setPullImageName('');
-      setPullTag('latest');
-      loadImages();
+      
+      if (data.logs && data.logs.length > 0) {
+        setPullLogs(data.logs);
+      }
+      
+      setTimeout(() => {
+        alert('镜像拉取成功！');
+        setShowPullModal(false);
+        setPullImageName('');
+        setPullTag('latest');
+        setPullLogs([]);
+        loadImages();
+      }, 1000);
     } catch (error: any) {
-      alert(`拉取镜像失败: ${error.response?.data?.message || error.message}`);
+      setPullLogs(prev => [...prev, `错误: ${error.response?.data?.message || error.message}`]);
+      setTimeout(() => {
+        alert(`拉取镜像失败: ${error.response?.data?.message || error.message}`);
+      }, 500);
     } finally {
       setLoading(false);
     }
@@ -120,19 +131,31 @@ export default function AdminImagesPage() {
     if (!buildImageName || !dockerfile || !selectedServer) return;
     
     setLoading(true);
+    setBuildLogs(['开始构建镜像...']);
     try {
-      await api.post(`/servers/${selectedServer}/images/build`, {
+      const { data } = await api.post(`/servers/${selectedServer}/images/build`, {
         dockerfile,
         imageName: buildImageName,
         tag: buildTag,
       });
-      alert('镜像构建成功！');
-      setShowBuildModal(false);
-      setBuildImageName('');
-      setBuildTag('latest');
-      loadImages();
+      
+      if (data.logs && data.logs.length > 0) {
+        setBuildLogs(data.logs);
+      }
+      
+      setTimeout(() => {
+        alert('镜像构建成功！');
+        setShowBuildModal(false);
+        setBuildImageName('');
+        setBuildTag('latest');
+        setBuildLogs([]);
+        loadImages();
+      }, 1000);
     } catch (error: any) {
-      alert(`构建镜像失败: ${error.response?.data?.message || error.message}`);
+      setBuildLogs(prev => [...prev, `错误: ${error.response?.data?.message || error.message}`]);
+      setTimeout(() => {
+        alert(`构建镜像失败: ${error.response?.data?.message || error.message}`);
+      }, 500);
     } finally {
       setLoading(false);
     }
@@ -180,7 +203,7 @@ export default function AdminImagesPage() {
               镜像管理
             </h2>
             <p className="text-on-surface-variant text-lg">
-              管理服务器上的 Docker 镜像、Dockerfile 和 Compose
+              管理服务器上的 Docker 镜像和 Dockerfile
             </p>
           </div>
 
@@ -217,14 +240,6 @@ export default function AdminImagesPage() {
               >
                 <FileCode className="w-4 h-4" />
                 构建镜像
-              </button>
-              <button
-                onClick={() => setShowComposeModal(true)}
-                className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-all flex items-center gap-2"
-                disabled={!selectedServer}
-              >
-                <Layers className="w-4 h-4" />
-                Compose
               </button>
             </div>
           </div>
@@ -328,7 +343,7 @@ export default function AdminImagesPage() {
       {/* 拉取镜像模态框 */}
       {showPullModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-container-high rounded-xl max-w-md w-full p-6">
+          <div className="bg-surface-container-high rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <h3 className="text-2xl font-bold text-primary mb-4">拉取镜像</h3>
             <div className="space-y-4">
               <div>
@@ -339,6 +354,7 @@ export default function AdminImagesPage() {
                   onChange={(e) => setPullImageName(e.target.value)}
                   placeholder="例如: nginx, ubuntu, mysql"
                   className="w-full px-4 py-2 bg-surface-container text-on-surface rounded-lg border border-outline-variant focus:outline-none focus:border-primary"
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -349,8 +365,29 @@ export default function AdminImagesPage() {
                   onChange={(e) => setPullTag(e.target.value)}
                   placeholder="latest"
                   className="w-full px-4 py-2 bg-surface-container text-on-surface rounded-lg border border-outline-variant focus:outline-none focus:border-primary"
+                  disabled={loading}
                 />
               </div>
+              
+              {/* 日志显示区域 */}
+              {pullLogs.length > 0 && (
+                <div>
+                  <label className="block text-sm text-on-surface-variant mb-2">拉取日志</label>
+                  <div className="bg-surface-container rounded-lg p-4 max-h-60 overflow-y-auto font-mono text-xs">
+                    {pullLogs.map((log, idx) => (
+                      <div key={idx} className="text-green-400 mb-1">
+                        {log}
+                      </div>
+                    ))}
+                    {loading && (
+                      <div className="text-blue-400 animate-pulse">
+                        拉取中...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
               <div className="flex gap-2 pt-4">
                 <button
                   onClick={handlePullImage}
@@ -360,10 +397,14 @@ export default function AdminImagesPage() {
                   {loading ? '拉取中...' : '拉取'}
                 </button>
                 <button
-                  onClick={() => setShowPullModal(false)}
-                  className="flex-1 py-2 bg-surface-container text-on-surface rounded-lg hover:bg-surface-bright transition-all"
+                  onClick={() => {
+                    setShowPullModal(false);
+                    setPullLogs([]);
+                  }}
+                  disabled={loading}
+                  className="flex-1 py-2 bg-surface-container text-on-surface rounded-lg hover:bg-surface-bright transition-all disabled:opacity-50"
                 >
-                  取消
+                  {loading ? '拉取中请稍候' : '取消'}
                 </button>
               </div>
             </div>
@@ -385,6 +426,7 @@ export default function AdminImagesPage() {
                   onChange={(e) => setBuildImageName(e.target.value)}
                   placeholder="例如: myapp"
                   className="w-full px-4 py-2 bg-surface-container text-on-surface rounded-lg border border-outline-variant focus:outline-none focus:border-primary"
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -395,6 +437,7 @@ export default function AdminImagesPage() {
                   onChange={(e) => setBuildTag(e.target.value)}
                   placeholder="latest"
                   className="w-full px-4 py-2 bg-surface-container text-on-surface rounded-lg border border-outline-variant focus:outline-none focus:border-primary"
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -404,8 +447,29 @@ export default function AdminImagesPage() {
                   onChange={(e) => setDockerfile(e.target.value)}
                   rows={12}
                   className="w-full px-4 py-2 bg-surface-container text-on-surface rounded-lg border border-outline-variant focus:outline-none focus:border-primary font-mono text-sm"
+                  disabled={loading}
                 />
               </div>
+              
+              {/* 日志显示区域 */}
+              {buildLogs.length > 0 && (
+                <div>
+                  <label className="block text-sm text-on-surface-variant mb-2">构建日志</label>
+                  <div className="bg-surface-container rounded-lg p-4 max-h-60 overflow-y-auto font-mono text-xs">
+                    {buildLogs.map((log, idx) => (
+                      <div key={idx} className="text-green-400 mb-1">
+                        {log}
+                      </div>
+                    ))}
+                    {loading && (
+                      <div className="text-blue-400 animate-pulse">
+                        构建中...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
               <div className="flex gap-2 pt-4">
                 <button
                   onClick={handleBuildImage}
@@ -415,53 +479,14 @@ export default function AdminImagesPage() {
                   {loading ? '构建中...' : '构建'}
                 </button>
                 <button
-                  onClick={() => setShowBuildModal(false)}
-                  className="flex-1 py-2 bg-surface-container text-on-surface rounded-lg hover:bg-surface-bright transition-all"
+                  onClick={() => {
+                    setShowBuildModal(false);
+                    setBuildLogs([]);
+                  }}
+                  disabled={loading}
+                  className="flex-1 py-2 bg-surface-container text-on-surface rounded-lg hover:bg-surface-bright transition-all disabled:opacity-50"
                 >
-                  取消
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Compose 模态框 */}
-      {showComposeModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-container-high rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-2xl font-bold text-primary mb-4">Docker Compose</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-on-surface-variant mb-2">项目名称</label>
-                <input
-                  type="text"
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="例如: myproject"
-                  className="w-full px-4 py-2 bg-surface-container text-on-surface rounded-lg border border-outline-variant focus:outline-none focus:border-primary"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-on-surface-variant mb-2">docker-compose.yml</label>
-                <textarea
-                  value={composeContent}
-                  onChange={(e) => setComposeContent(e.target.value)}
-                  rows={12}
-                  className="w-full px-4 py-2 bg-surface-container text-on-surface rounded-lg border border-outline-variant focus:outline-none focus:border-primary font-mono text-sm"
-                />
-              </div>
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <p className="text-blue-400 text-sm">
-                  注意：Docker Compose 功能需要在服务器上安装 docker-compose 工具
-                </p>
-              </div>
-              <div className="flex gap-2 pt-4">
-                <button
-                  onClick={() => setShowComposeModal(false)}
-                  className="flex-1 py-2 bg-surface-container text-on-surface rounded-lg hover:bg-surface-bright transition-all"
-                >
-                  关闭
+                  {loading ? '构建中请稍候' : '取消'}
                 </button>
               </div>
             </div>
