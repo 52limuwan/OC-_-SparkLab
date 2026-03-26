@@ -1,0 +1,435 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/useAuthStore';
+import { adminAPI, courseAPI, labAPI } from '@/lib/api';
+import AdminSidebar from '@/components/AdminSidebar';
+import LoadingBar from '@/components/LoadingBar';
+import { Edit, Trash2, Plus, X, BookOpen, Server, Disc } from 'lucide-react';
+import api from '@/lib/api';
+
+interface ServerInfo {
+  id: string;
+  name: string;
+  status: string;
+}
+
+interface DockerImage {
+  id: string;
+  tags: string[];
+}
+
+export default function AdminCourseLabsPage() {
+  const params = useParams();
+  const router = useRouter();
+  const courseId = params.courseId as string;
+  const { user, isAuthenticated, isLoading, isLoggingOut, checkAuth } = useAuthStore();
+  const [selectedCourse, setSelectedCourse] = useState<any>(null);
+  const [labs, setLabs] = useState<any[]>([]);
+  const [editingLab, setEditingLab] = useState<any>(null);
+  const [servers, setServers] = useState<ServerInfo[]>([]);
+  const [images, setImages] = useState<DockerImage[]>([]);
+  const [selectedServer, setSelectedServer] = useState<string>('');
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login');
+    } else if (!isLoading && isAuthenticated && user?.role !== 'ADMIN') {
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, isLoading, user, router]);
+
+  useEffect(() => {
+    if (isAuthenticated && user?.role === 'ADMIN' && courseId) {
+      loadCourse();
+      loadLabs(courseId);
+      loadServers();
+    }
+  }, [isAuthenticated, user, courseId]);
+
+  useEffect(() => {
+    if (selectedServer) {
+      loadImages();
+    }
+  }, [selectedServer]);
+
+  const loadCourse = async () => {
+    try {
+      const res = await courseAPI.getOne(courseId);
+      setSelectedCourse(res.data);
+    } catch (error) {
+      console.error('Failed to load course:', error);
+    }
+  };
+
+  const loadLabs = async (courseId: string) => {
+    try {
+      const res = await labAPI.getByCourse(courseId);
+      setLabs(res.data);
+    } catch (error) {
+      console.error('Failed to load labs:', error);
+    }
+  };
+
+  const loadServers = async () => {
+    try {
+      const { data } = await api.get('/servers');
+      const onlineServers = data.filter((s: ServerInfo) => s.status === 'online');
+      setServers(onlineServers);
+    } catch (error) {
+      console.error('Failed to load servers:', error);
+    }
+  };
+
+  const loadImages = async () => {
+    if (!selectedServer) return;
+    try {
+      const { data } = await api.get(`/servers/${selectedServer}/images`);
+      setImages(data.images || []);
+    } catch (error) {
+      console.error('Failed to load images:', error);
+    }
+  };
+
+  const handleSaveLab = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      courseId: courseId,
+      title: formData.get('title') as string,
+      description: formData.get('description') as string,
+      content: formData.get('content') as string,
+      difficulty: formData.get('difficulty') as string,
+      order: parseInt(formData.get('order') as string),
+      points: parseInt(formData.get('points') as string),
+      timeLimit: editingLab.timeLimit || 60,
+      serverId: formData.get('serverId') as string || null,
+      dockerImage: formData.get('dockerImage') as string,
+      cpuLimit: parseFloat(formData.get('cpuLimit') as string),
+      memoryLimit: parseInt(formData.get('memoryLimit') as string),
+    };
+
+    console.log('Saving lab with data:', data);
+    console.log('Editing lab:', editingLab);
+
+    try {
+      if (editingLab && editingLab.id) {
+        console.log('Updating lab:', editingLab.id);
+        await adminAPI.updateLab(editingLab.id, data);
+      } else {
+        console.log('Creating new lab');
+        await adminAPI.createLab(data);
+      }
+      setEditingLab(null);
+      setSelectedServer('');
+      setImages([]);
+      await loadLabs(courseId);
+    } catch (error: any) {
+      console.error('Failed to save lab:', error);
+      const errorMessage = error.response?.data?.message || error.message || '未知错误';
+      alert(`保存失败: ${errorMessage}`);
+    }
+  };
+
+  const handleDeleteLab = async (id: string) => {
+    if (!confirm('确定要删除此实验吗？')) return;
+    try {
+      await adminAPI.deleteLab(id);
+      await loadLabs(courseId);
+    } catch (error) {
+      console.error('Failed to delete lab:', error);
+      alert('删除失败，请重试');
+    }
+  };
+
+  const handleStartEdit = (lab: any) => {
+    setEditingLab(lab);
+    if (lab.serverId) {
+      setSelectedServer(lab.serverId);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingLab(null);
+    setSelectedServer('');
+    setImages([]);
+  };
+
+  if (isLoading) {
+    return <LoadingBar />;
+  }
+
+  if (isLoggingOut) {
+    return <LoadingBar text="退出中" />;
+  }
+
+  if (!isAuthenticated || user?.role !== 'ADMIN') {
+    return null;
+  }
+
+  return (
+    <div className="flex min-h-screen bg-background text-on-surface">
+      <AdminSidebar />
+
+      <main className="flex-1 ml-64 min-h-screen flex flex-col">
+        <div className="p-8 flex-1">
+          <div className="mb-10">
+            <div className="flex items-center gap-4 mb-2">
+              <button
+                onClick={() => router.push('/admin/courses')}
+                className="text-on-surface-variant hover:text-primary"
+              >
+                ← 返回课程管理
+              </button>
+            </div>
+            <h2 className="text-4xl font-extrabold font-headline tracking-tight text-primary mb-2">
+              管理实验
+            </h2>
+            <p className="text-on-surface-variant text-lg">
+              {selectedCourse ? selectedCourse.title : '加载中...'} - 共 {labs.length} 个实验
+            </p>
+          </div>
+
+          {!editingLab ? (
+            <>
+              <div className="mb-4">
+                <button
+                  onClick={() => {
+                    setEditingLab({});
+                    setSelectedServer('');
+                    setImages([]);
+                  }}
+                  className="bg-primary text-on-primary px-4 py-2 rounded-lg flex items-center gap-2 hover:opacity-90 transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  新建实验
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {labs.map((lab: any, index: number) => (
+                  <div key={lab.id} className="bg-surface-container rounded-lg p-4 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold flex-shrink-0">
+                      {lab.order || index + 1}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-primary">{lab.title}</h4>
+                      <p className="text-sm text-on-surface-variant line-clamp-1">{lab.description}</p>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-on-surface-variant">
+                        <span>{lab.difficulty === 'beginner' ? '入门' : lab.difficulty === 'intermediate' ? '进阶' : '高级'}</span>
+                        <span>{lab.points} 分</span>
+                        {lab.serverId && <span>服务器: {lab.serverId?.slice(0, 8)}...</span>}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleStartEdit(lab)}
+                        className="bg-surface-container-high text-primary px-3 py-2 rounded-lg hover:bg-surface-bright transition-all"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteLab(lab.id)}
+                        className="bg-red-500/20 text-red-400 px-3 py-2 rounded-lg hover:bg-red-500/30 transition-all"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {labs.length === 0 && (
+                  <div className="text-center py-12 text-on-surface-variant">
+                    <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <p>该课程暂无实验</p>
+                    <p className="text-sm mt-2">点击上方"新建实验"按钮添加</p>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="bg-surface-container-high rounded-xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-primary">
+                  {editingLab.id ? '编辑实验' : '新建实验'}
+                </h3>
+                <button onClick={handleCancelEdit} className="text-on-surface-variant hover:text-primary">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form onSubmit={handleSaveLab} className="space-y-4">
+                <div>
+                  <label className="block text-sm text-on-surface-variant mb-2">实验名称 *</label>
+                  <input
+                    name="title"
+                    defaultValue={editingLab.title || ''}
+                    required
+                    className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-on-surface-variant mb-2">实验描述</label>
+                  <textarea
+                    name="description"
+                    defaultValue={editingLab.description || ''}
+                    rows={2}
+                    className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-on-surface-variant mb-2">实验内容（Markdown）</label>
+                  <textarea
+                    name="content"
+                    defaultValue={editingLab.content || ''}
+                    rows={8}
+                    className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary font-mono text-sm"
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm text-on-surface-variant mb-2">排序 *</label>
+                    <input
+                      name="order"
+                      type="number"
+                      defaultValue={editingLab.order || labs.length + 1}
+                      required
+                      min="1"
+                      className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-on-surface-variant mb-2">难度 *</label>
+                    <select
+                      name="difficulty"
+                      defaultValue={editingLab.difficulty || 'beginner'}
+                      className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="beginner">入门</option>
+                      <option value="intermediate">进阶</option>
+                      <option value="advanced">高级</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-on-surface-variant mb-2">分数 *</label>
+                    <input
+                      name="points"
+                      type="number"
+                      defaultValue={editingLab.points || 100}
+                      required
+                      min="1"
+                      className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-on-surface-variant mb-2">选择服务器</label>
+                    <select
+                      name="serverId"
+                      value={selectedServer}
+                      onChange={(e) => setSelectedServer(e.target.value)}
+                      className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">不指定服务器</option>
+                      {servers.map(server => (
+                        <option key={server.id} value={server.id}>
+                          {server.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-on-surface-variant mb-2">选择镜像 *</label>
+                    {selectedServer ? (
+                      <select
+                        name="dockerImage"
+                        defaultValue={editingLab.dockerImage || ''}
+                        required
+                        className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        {images.length === 0 ? (
+                          <option value="">该服务器暂无镜像</option>
+                        ) : (
+                          images.map((img) => (
+                            <option key={img.id} value={img.tags?.[0] || img.id.slice(0, 12)}>
+                              {img.tags?.[0] || img.id.slice(0, 12)}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    ) : (
+                      <input
+                        name="dockerImage"
+                        defaultValue={editingLab.dockerImage || 'ubuntu:22.04'}
+                        required
+                        placeholder="ubuntu:22.04"
+                        className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-on-surface-variant mb-2">CPU 限制 *</label>
+                    <input
+                      name="cpuLimit"
+                      type="number"
+                      step="0.1"
+                      defaultValue={editingLab.cpuLimit || 1.0}
+                      required
+                      min="0.1"
+                      max="4"
+                      className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-on-surface-variant mb-2">内存限制（MB） *</label>
+                    <input
+                      name="memoryLimit"
+                      type="number"
+                      defaultValue={editingLab.memoryLimit || 512}
+                      required
+                      min="128"
+                      step="128"
+                      className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="flex-1 bg-surface-container text-on-surface-variant px-4 py-2 rounded-lg hover:bg-surface-bright transition-all"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-primary text-on-primary px-4 py-2 rounded-lg hover:opacity-90 transition-all"
+                  >
+                    保存实验
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}

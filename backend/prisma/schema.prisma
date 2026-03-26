@@ -79,6 +79,9 @@ model Lab {
   points      Int      @default(100)
   timeLimit   Int      @default(60) // 分钟
   
+  // 服务器配置
+  serverId    String?
+  
   // Docker 配置
   dockerImage String   @default("ubuntu:22.04")
   cpuLimit    Float    @default(1.0)
@@ -93,6 +96,7 @@ model Lab {
   
   // 关联
   course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  server      Server?  @relation(fields: [serverId], references: [id], onDelete: SetNull)
   steps       Step[]
   containers  Container[]
   submissions Submission[]
