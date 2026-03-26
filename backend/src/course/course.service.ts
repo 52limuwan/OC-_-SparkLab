@@ -6,6 +6,8 @@ export class CourseService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(userId?: string) {
+    console.log('CourseService.findAll called with userId:', userId);
+    
     const courses = await this.prisma.course.findMany({
       where: { isPublished: true },
       include: {
@@ -25,12 +27,19 @@ export class CourseService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return courses.map(course => ({
-      ...course,
-      labCount: course.labs.length,
-      isEnrolled: userId ? course.enrollments?.length > 0 : false,
-      enrollments: undefined,
-    }));
+    const result = courses.map(course => {
+      const isEnrolled = userId ? (course.enrollments?.length || 0) > 0 : false;
+      console.log(`Course ${course.id}: isEnrolled=${isEnrolled}, enrollments count=${course.enrollments?.length || 0}`);
+      
+      return {
+        ...course,
+        labCount: course.labs.length,
+        isEnrolled,
+        enrollments: undefined,
+      };
+    });
+
+    return result;
   }
 
   async findOne(id: string, userId?: string) {
@@ -64,6 +73,8 @@ export class CourseService {
   }
 
   async enroll(courseId: string, userId: string) {
+    console.log('CourseService.enroll called:', { courseId, userId });
+    
     const course = await this.prisma.course.findUnique({
       where: { id: courseId },
     });
@@ -86,6 +97,7 @@ export class CourseService {
       update: {},
     });
 
+    console.log('Enrollment created/updated:', enrollment);
     return enrollment;
   }
 

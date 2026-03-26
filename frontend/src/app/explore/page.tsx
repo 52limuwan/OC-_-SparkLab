@@ -23,7 +23,9 @@ export default function ExplorePage() {
 
   const loadCourses = async () => {
     try {
+      console.log('Loading courses...');
       const response = await courseAPI.getAll();
+      console.log('Courses loaded:', response.data);
       setCourses(response.data);
     } catch (error) {
       console.error('Failed to load courses:', error);
@@ -36,10 +38,16 @@ export default function ExplorePage() {
       return;
     }
     try {
-      await courseAPI.enroll(courseId);
-      loadCourses();
-    } catch (error) {
+      console.log('Enrolling in course:', courseId);
+      const response = await courseAPI.enroll(courseId);
+      console.log('Enrollment response:', response.data);
+      
+      // 重新加载课程列表
+      await loadCourses();
+      console.log('Courses reloaded');
+    } catch (error: any) {
       console.error('Failed to enroll:', error);
+      alert(`注册失败: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -116,7 +124,7 @@ export default function ExplorePage() {
                   onClick={() => handleContinue(course.id)}
                   className="w-full bg-primary text-on-primary py-2 rounded-full hover:opacity-90 transition-all"
                 >
-                  继续学习
+                  进入学习
                 </button>
               ) : (
                 <button

@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { labAPI, containerAPI } from '@/lib/api';
 import LoadingBar from '@/components/LoadingBar';
-import { Terminal, Monitor, Play, Square, Save, RotateCcw } from 'lucide-react';
+import { Terminal, Monitor, Play, Square, Save, RotateCcw, Laptop } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 export default function LabPage() {
@@ -15,7 +15,7 @@ export default function LabPage() {
   const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
   const [lab, setLab] = useState<any>(null);
   const [container, setContainer] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'vnc' | 'ssh'>('vnc');
+  const [activeTab, setActiveTab] = useState<'vnc' | 'ssh' | 'rdp'>('vnc');
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const [command, setCommand] = useState('');
 
@@ -174,6 +174,17 @@ export default function LabPage() {
               <Terminal className="w-4 h-4" />
               SSH
             </button>
+            <button
+              onClick={() => setActiveTab('rdp')}
+              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${
+                activeTab === 'rdp'
+                  ? 'bg-primary text-on-primary'
+                  : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'
+              }`}
+            >
+              <Laptop className="w-4 h-4" />
+              RDP
+            </button>
           </div>
 
           <div className="flex gap-2">
@@ -223,6 +234,26 @@ export default function LabPage() {
               ) : (
                 <div className="text-center">
                   <Monitor className="w-16 h-16 text-on-surface-variant mx-auto mb-4 opacity-50" />
+                  <p className="text-on-surface-variant">请先启动容器</p>
+                </div>
+              )}
+            </div>
+          ) : activeTab === 'rdp' ? (
+            <div className="h-full bg-surface-container flex items-center justify-center">
+              {container ? (
+                <div className="text-center">
+                  <Laptop className="w-16 h-16 text-primary mx-auto mb-4" />
+                  <p className="text-on-surface-variant mb-2">RDP 连接</p>
+                  <p className="text-xs text-on-surface-variant">
+                    容器 ID: {container.id.slice(0, 8)}
+                  </p>
+                  <p className="text-xs text-on-surface-variant mt-4">
+                    RDP 功能开发中...
+                  </p>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <Laptop className="w-16 h-16 text-on-surface-variant mx-auto mb-4 opacity-50" />
                   <p className="text-on-surface-variant">请先启动容器</p>
                 </div>
               )}
