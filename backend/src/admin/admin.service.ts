@@ -102,19 +102,74 @@ export class AdminService {
 
   // ==================== 实验管理 ====================
   async createLab(data: any) {
-    return this.prisma.lab.create({ data });
+    console.log('AdminService.createLab called with data:', data);
+    
+    try {
+      const lab = await this.prisma.lab.create({ 
+        data: {
+          courseId: data.courseId,
+          title: data.title,
+          description: data.description,
+          content: data.content || '',
+          difficulty: data.difficulty || 'beginner',
+          order: data.order || 1,
+          points: data.points || 100,
+          timeLimit: data.timeLimit || 30,
+          dockerImage: data.dockerImage || 'ubuntu:22.04',
+          cpuLimit: data.cpuLimit || 1.0,
+          memoryLimit: data.memoryLimit || 512,
+          judgeType: data.judgeType || 'manual',
+          judgeScript: data.judgeScript || null,
+        }
+      });
+      
+      console.log('Lab created successfully:', lab.id);
+      return lab;
+    } catch (error) {
+      console.error('Failed to create lab:', error);
+      throw error;
+    }
   }
 
   async updateLab(id: string, data: any) {
-    return this.prisma.lab.update({
-      where: { id },
-      data,
-    });
+    console.log('AdminService.updateLab called:', { id, data });
+    
+    try {
+      const lab = await this.prisma.lab.update({
+        where: { id },
+        data: {
+          title: data.title,
+          description: data.description,
+          content: data.content,
+          difficulty: data.difficulty,
+          order: data.order,
+          points: data.points,
+          timeLimit: data.timeLimit,
+          dockerImage: data.dockerImage,
+          cpuLimit: data.cpuLimit,
+          memoryLimit: data.memoryLimit,
+        },
+      });
+      
+      console.log('Lab updated successfully:', lab.id);
+      return lab;
+    } catch (error) {
+      console.error('Failed to update lab:', error);
+      throw error;
+    }
   }
 
   async deleteLab(id: string) {
-    await this.prisma.lab.delete({ where: { id } });
-    return { message: 'Lab deleted successfully' };
+    console.log('AdminService.deleteLab called:', id);
+    
+    try {
+      await this.prisma.lab.delete({ where: { id } });
+      console.log('Lab deleted successfully:', id);
+      return { message: 'Lab deleted successfully' };
+    } catch (error) {
+      console.error('Failed to delete lab:', error);
+      throw error;
+    }
   }
 
   // ==================== 容器管理 ====================
