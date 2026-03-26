@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Users, BookOpen, Container, LogOut, Settings, Server } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen, Container, LogOut, Settings, Server, Disc } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { getUserAvatarOrInitial } from '@/lib/avatar';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,7 @@ const adminNavItems = [
   { icon: BookOpen, label: '课程管理', href: '/admin/courses' },
   { icon: Server, label: '服务器管理', href: '/admin/servers' },
   { icon: Container, label: '容器管理', href: '/admin/containers' },
+  { icon: Disc, label: '镜像管理', href: '/admin/images' },
 ];
 
 export default function AdminSidebar() {

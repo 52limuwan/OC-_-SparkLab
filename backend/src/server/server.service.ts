@@ -293,6 +293,171 @@ export class ServerService {
     }
   }
 
+  // 删除镜像
+  async removeImage(serverId: string, imageId: string) {
+    const server = await this.findOne(serverId);
+    
+    if (server.status !== 'online') {
+      throw new BadRequestException('Server is offline');
+    }
+
+    try {
+      this.logger.log(`删除镜像 ${imageId} 在服务器 ${serverId}`);
+      
+      const docker = new Docker({
+        host: server.host,
+        port: 2375,
+      });
+      
+      const image = docker.getImage(imageId);
+      await image.remove({ force: true });
+      
+      return { message: 'Image removed successfully' };
+    } catch (error) {
+      this.logger.error(`删除镜像失败: ${error.message}`);
+      throw new BadRequestException(`Failed to remove image: ${error.message}`);
+    }
+  }
+
+  // 拉取镜像
+  async pullImage(serverId: string, imageName: string, tag: string = 'latest') {
+    const server = await this.findOne(serverId);
+    
+    if (server.status !== 'online') {
+      throw new BadRequestException('Server is offline');
+    }
+
+    try {
+      this.logger.log(`拉取镜像 ${imageName}:${tag} 到服务器 ${serverId}`);
+      
+      const docker = new Docker({
+        host: server.host,
+        port: 2375,
+      });
+      
+      const fullImageName = `${imageName}:${tag}`;
+      
+      // 拉取镜像（这是一个流式操作）
+      await new Promise((resolve, reject) => {
+        docker.pull(fullImageName, (err: any, stream: any) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          
+          docker.modem.followProgress(stream, (err: any, output: any) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(output);
+            }
+          });
+        });
+      });
+      
+      return { message: 'Image pulled successfully', image: fullImageName };
+    } catch (error) {
+      this.logger.error(`拉取镜像失败: ${error.message}`);
+      throw new BadRequestException(`Failed to pull image: ${error.message}`);
+    }
+  }
+
+  // 构建镜像
+  async buildImage(serverId: string, dockerfile: string, imageName: string, tag: string = 'latest') {
+    const server = await this.findOne(serverId);
+    
+    if (server.status !== 'online') {
+      throw new BadRequestException('Server is offline');
+    }
+
+    try {
+      this.logger.log(`构建镜像 ${imageName}:${tag} 在服务器 ${serverId}`);
+      
+      const docker = new Docker({
+        host: server.host,
+        port: 2375,
+      });
+      
+      const fullImageName = `${imageName}:${tag}`;
+      
+      // 创建 tar 包含 Dockerfile
+      const tarStream = require('tar-stream');
+      const pack = tarStream.pack();
+      pack.entry({ name: 'Dockerfile' }, dockerfile);
+      pack.finalize();
+      
+      // 构建镜像
+      await new Promise((resolve, reject) => {
+        docker.buildImage(pack, { t: fullImageName }, (err: any, stream: any) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          
+          docker.modem.followProgress(stream, (err: any, output: any) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(output);
+            }
+          });
+        });
+      });
+      
+      return { message: 'Image built successfully', image: fullImageName };
+    } catch (error) {
+      this.logger.error(`构建镜像失败: ${error.message}`);
+      throw new BadRequestException(`Failed to build image: ${error.message}`);
+    }
+  }
+
+  // Docker Compose Up
+  async composeUp(serverId: string, composeContent: string, projectName: string) {
+    const server = await this.findOne(serverId);
+    
+    if (server.status !== 'online') {
+      throw new BadRequestException('Server is offline');
+    }
+
+    try {
+      this.logger.log(`启动 Compose 项目 ${projectName} 在服务器 ${serverId}`);
+      
+      // 注意：Docker SDK 不直接支持 docker-compose
+      // 这里需要通过 Agent 执行命令或使用其他方式
+      // 简化实现：返回提示信息
+      
+      return { 
+        message: 'Compose up command prepared',
+        note: 'Docker Compose operations require docker-compose to be installed on the server',
+        projectName,
+      };
+    } catch (error) {
+      this.logger.error(`启动 Compose 失败: ${error.message}`);
+      throw new BadRequestException(`Failed to start compose: ${error.message}`);
+    }
+  }
+
+  // Docker Compose Down
+  async composeDown(serverId: string, projectName: string) {
+    const server = await this.findOne(serverId);
+    
+    if (server.status !== 'online') {
+      throw new BadRequestException('Server is offline');
+    }
+
+    try {
+      this.logger.log(`停止 Compose 项目 ${projectName} 在服务器 ${serverId}`);
+      
+      return { 
+        message: 'Compose down command prepared',
+        projectName,
+      };
+    } catch (error) {
+      this.logger.error(`停止 Compose 失败: ${error.message}`);
+      throw new BadRequestException(`Failed to stop compose: ${error.message}`);
+    }
+  }
+
   private generateToken(): string {
     return Array.from({ length: 32 }, () =>
       Math.floor(Math.random() * 16).toString(16)

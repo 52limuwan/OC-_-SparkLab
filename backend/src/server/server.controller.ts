@@ -50,6 +50,51 @@ export class ServerController {
     return this.serverService.listServerImages(id);
   }
 
+  @Delete(':id/images/:imageId')
+  @Roles('ADMIN')
+  async removeImage(
+    @Param('id') serverId: string,
+    @Param('imageId') imageId: string,
+  ) {
+    return this.serverService.removeImage(serverId, imageId);
+  }
+
+  @Post(':id/images/pull')
+  @Roles('ADMIN')
+  async pullImage(
+    @Param('id') serverId: string,
+    @Body() body: { imageName: string; tag?: string },
+  ) {
+    return this.serverService.pullImage(serverId, body.imageName, body.tag);
+  }
+
+  @Post(':id/images/build')
+  @Roles('ADMIN')
+  async buildImage(
+    @Param('id') serverId: string,
+    @Body() body: { dockerfile: string; imageName: string; tag?: string },
+  ) {
+    return this.serverService.buildImage(serverId, body.dockerfile, body.imageName, body.tag);
+  }
+
+  @Post(':id/compose/up')
+  @Roles('ADMIN')
+  async composeUp(
+    @Param('id') serverId: string,
+    @Body() body: { composeContent: string; projectName: string },
+  ) {
+    return this.serverService.composeUp(serverId, body.composeContent, body.projectName);
+  }
+
+  @Post(':id/compose/down')
+  @Roles('ADMIN')
+  async composeDown(
+    @Param('id') serverId: string,
+    @Body() body: { projectName: string },
+  ) {
+    return this.serverService.composeDown(serverId, body.projectName);
+  }
+
   @Post(':id/containers/:containerId/start')
   @Roles('ADMIN')
   async startContainerPost(
