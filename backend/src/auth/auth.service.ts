@@ -17,13 +17,13 @@ export class AuthService {
       where: {
         OR: [
           { username: registerDto.username },
-          { email: registerDto.email },
+          ...(registerDto.qqNumber ? [{ qqNumber: registerDto.qqNumber }] : []),
         ],
       },
     });
 
     if (existingUser) {
-      throw new ConflictException('Username or email already exists');
+      throw new ConflictException('Username or QQ number already exists');
     }
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
@@ -31,7 +31,7 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: {
         username: registerDto.username,
-        email: registerDto.email,
+        email: registerDto.email || `${registerDto.username}@sparklab.local`, // 生成默认邮箱
         password: hashedPassword,
         role: 'STUDENT',
         qqNumber: registerDto.qqNumber,
@@ -43,8 +43,14 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { username: loginDto.username },
+    // 支持用户名或QQ号登录
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: loginDto.username },
+          { qqNumber: loginDto.username }, // 使用username字段传递QQ号
+        ],
+      },
     });
 
     if (!user || !(await bcrypt.compare(loginDto.password, user.password))) {
@@ -64,8 +70,8 @@ export class AuthService {
       user: {
         id: user.id,
         username: user.username,
-        email: user.email,
         role: user.role,
+        qqNumber: user.qqNumber,
       },
     };
   }
@@ -76,7 +82,6 @@ export class AuthService {
       select: {
         id: true,
         username: true,
-        email: true,
         role: true,
         avatar: true,
         qqNumber: true,
@@ -91,7 +96,6 @@ export class AuthService {
       select: {
         id: true,
         username: true,
-        email: true,
         role: true,
         avatar: true,
         qqNumber: true,

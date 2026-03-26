@@ -118,7 +118,7 @@ export default function Login() {
                                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                                     onFocus={() => setIsTyping(true)}
                                     onBlur={() => setIsTyping(false)}
-                                    placeholder="输入您的账号"
+                                    placeholder="用户名或QQ号"
                                     required
                                     minLength={3}
                                     className="w-full h-12 pl-11 pr-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"

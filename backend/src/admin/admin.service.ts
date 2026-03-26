@@ -11,7 +11,6 @@ export class AdminService {
       select: {
         id: true,
         username: true,
-        email: true,
         role: true,
         qqNumber: true,
         createdAt: true,
@@ -27,14 +26,14 @@ export class AdminService {
     });
   }
 
-  async createUser(data: { username: string; email: string; password: string; role?: string; qqNumber?: string }) {
-    const bcrypt = require('bcrypt');
+  async createUser(data: { username: string; password: string; role?: string; qqNumber?: string }) {
+    const bcrypt = require('bcryptjs');
     const hashedPassword = await bcrypt.hash(data.password, 10);
     
     return this.prisma.user.create({
       data: {
         username: data.username,
-        email: data.email,
+        email: `${data.username}@sparklab.local`, // 生成默认邮箱
         password: hashedPassword,
         role: data.role || 'STUDENT',
         qqNumber: data.qqNumber,
@@ -42,7 +41,31 @@ export class AdminService {
       select: {
         id: true,
         username: true,
-        email: true,
+        role: true,
+        qqNumber: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async updateUser(id: string, data: { username?: string; password?: string; role?: string; qqNumber?: string }) {
+    const bcrypt = require('bcryptjs');
+    const updateData: any = {};
+    
+    if (data.username) {
+      updateData.username = data.username;
+      updateData.email = `${data.username}@sparklab.local`; // 同步更新邮箱
+    }
+    if (data.password) updateData.password = await bcrypt.hash(data.password, 10);
+    if (data.role) updateData.role = data.role;
+    if (data.qqNumber !== undefined) updateData.qqNumber = data.qqNumber;
+    
+    return this.prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        username: true,
         role: true,
         qqNumber: true,
         createdAt: true,

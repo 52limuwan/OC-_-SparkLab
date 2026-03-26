@@ -115,21 +115,34 @@ export default function AdminPage() {
   const handleSaveUser = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const data = {
+    const password = formData.get('password') as string;
+    const data: any = {
       username: formData.get('username') as string,
-      email: formData.get('email') as string,
-      password: formData.get('password') as string,
       role: formData.get('role') as string,
       qqNumber: formData.get('qqNumber') as string,
     };
 
+    // 只有在密码不为空时才包含密码字段
+    if (password) {
+      data.password = password;
+    }
+
     try {
-      await adminAPI.createUser(data);
+      if (editingItem) {
+        await adminAPI.updateUser(editingItem.id, data);
+      } else {
+        if (!password) {
+          alert('创建新用户时密码不能为空');
+          return;
+        }
+        await adminAPI.createUser(data);
+      }
       setShowModal(false);
+      setEditingItem(null);
       loadData();
     } catch (error) {
-      console.error('Failed to create user:', error);
-      alert('创建用户失败，请检查用户名或邮箱是否已存在');
+      console.error('Failed to save user:', error);
+      alert(editingItem ? '更新用户失败' : '创建用户失败，请检查用户名或QQ号是否已存在');
     }
   };
 
@@ -240,6 +253,7 @@ export default function AdminPage() {
                 <button
                   onClick={() => {
                     setModalType('user');
+                    setEditingItem(null);
                     setShowModal(true);
                   }}
                   className="bg-primary text-on-primary px-4 py-2 rounded-lg flex items-center gap-2 hover:opacity-90 transition-all"
@@ -255,7 +269,6 @@ export default function AdminPage() {
                     <tr>
                       <th className="text-left p-4 text-sm font-medium text-on-surface-variant">头像</th>
                       <th className="text-left p-4 text-sm font-medium text-on-surface-variant">用户名</th>
-                      <th className="text-left p-4 text-sm font-medium text-on-surface-variant">邮箱</th>
                       <th className="text-left p-4 text-sm font-medium text-on-surface-variant">QQ号</th>
                       <th className="text-left p-4 text-sm font-medium text-on-surface-variant">角色</th>
                       <th className="text-left p-4 text-sm font-medium text-on-surface-variant">容器数</th>
@@ -280,7 +293,6 @@ export default function AdminPage() {
                           )}
                         </td>
                         <td className="p-4 text-primary">{u.username}</td>
-                        <td className="p-4 text-on-surface-variant">{u.email}</td>
                         <td className="p-4 text-on-surface-variant">{u.qqNumber || '-'}</td>
                         <td className="p-4">
                           <span className={`px-2 py-1 rounded text-xs ${
@@ -292,13 +304,25 @@ export default function AdminPage() {
                         <td className="p-4 text-on-surface-variant">{u._count?.containers || 0}</td>
                         <td className="p-4 text-on-surface-variant">{u._count?.submissions || 0}</td>
                         <td className="p-4">
-                          <button
-                            onClick={() => handleDeleteUser(u.id)}
-                            className="text-red-400 hover:text-red-300 transition-colors"
-                            disabled={u.role === 'ADMIN'}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setModalType('user');
+                                setEditingItem(u);
+                                setShowModal(true);
+                              }}
+                              className="text-primary hover:text-primary/80 transition-colors"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(u.id)}
+                              className="text-red-400 hover:text-red-300 transition-colors"
+                              disabled={u.role === 'ADMIN'}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -495,7 +519,9 @@ export default function AdminPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-surface-container-high rounded-xl p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-primary">添加用户</h3>
+              <h3 className="text-xl font-bold text-primary">
+                {editingItem ? '编辑用户' : '添加用户'}
+              </h3>
               <button onClick={() => setShowModal(false)} className="text-on-surface-variant hover:text-primary">
                 <X className="w-5 h-5" />
               </button>
@@ -506,27 +532,21 @@ export default function AdminPage() {
                 <label className="block text-sm text-on-surface-variant mb-2">用户名</label>
                 <input
                   name="username"
+                  defaultValue={editingItem?.username}
                   required
                   className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-on-surface-variant mb-2">邮箱</label>
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-on-surface-variant mb-2">密码</label>
+                <label className="block text-sm text-on-surface-variant mb-2">
+                  密码 {editingItem && <span className="text-xs">(留空则不修改)</span>}
+                </label>
                 <input
                   name="password"
                   type="password"
-                  required
+                  required={!editingItem}
+                  placeholder={editingItem ? '留空则不修改密码' : ''}
                   className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
@@ -536,6 +556,7 @@ export default function AdminPage() {
                 <input
                   name="qqNumber"
                   type="text"
+                  defaultValue={editingItem?.qqNumber}
                   placeholder="用于获取QQ头像"
                   className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
@@ -545,7 +566,7 @@ export default function AdminPage() {
                 <label className="block text-sm text-on-surface-variant mb-2">角色</label>
                 <select
                   name="role"
-                  defaultValue="STUDENT"
+                  defaultValue={editingItem?.role || 'STUDENT'}
                   className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="STUDENT">学生</option>
@@ -566,7 +587,7 @@ export default function AdminPage() {
                   type="submit"
                   className="flex-1 bg-primary text-on-primary px-4 py-2 rounded-lg hover:opacity-90 transition-all"
                 >
-                  创建
+                  {editingItem ? '保存' : '创建'}
                 </button>
               </div>
             </form>
