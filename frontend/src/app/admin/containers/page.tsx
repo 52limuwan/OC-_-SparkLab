@@ -41,6 +41,8 @@ export default function AdminContainersPage() {
   const [containers, setContainers] = useState<Container[]>([]);
   const [servers, setServers] = useState<ServerInfo[]>([]);
   const [selectedServer, setSelectedServer] = useState<string>('all');
+  const [totalImages, setTotalImages] = useState<number>(0);
+  const [usedImages, setUsedImages] = useState<number>(0);
 
   useEffect(() => {
     checkAuth();
@@ -59,11 +61,13 @@ export default function AdminContainersPage() {
       loadData();
       loadServers();
       loadAllServerContainers();
+      loadAllServerImages();
       // 每 3 秒刷新一次
       const interval = setInterval(() => {
         loadData();
         loadServers();
         loadAllServerContainers();
+        loadAllServerImages();
       }, 3000);
       return () => clearInterval(interval);
     }
@@ -151,8 +155,39 @@ export default function AdminContainersPage() {
         }
         return newContainers;
       });
+
+      // 统计使用中的镜像
+      const usedImageSet = new Set(allDockerContainers.map(c => c.image).filter(img => img));
+      setUsedImages(usedImageSet.size);
     } catch (error) {
       console.error('Failed to load all server containers:', error);
+    }
+  };
+
+  const loadAllServerImages = async () => {
+    try {
+      const { data: serverList } = await api.get('/servers');
+      const onlineServers = serverList.filter((s: ServerInfo) => s.status === 'online');
+      
+      // 并行获取所有在线服务器的镜像
+      const imagePromises = onlineServers.map(async (server: ServerInfo) => {
+        try {
+          const { data } = await api.get(`/servers/${server.id}/images`);
+          return data.images || [];
+        } catch (error) {
+          console.error(`Failed to load images from ${server.name}:`, error);
+          return [];
+        }
+      });
+
+      const allImagesArrays = await Promise.all(imagePromises);
+      const allImages = allImagesArrays.flat();
+      
+      // 统计所有镜像（通过 ID 去重）
+      const uniqueImageIds = new Set(allImages.map((img: any) => img.id));
+      setTotalImages(uniqueImageIds.size);
+    } catch (error) {
+      console.error('Failed to load all server images:', error);
     }
   };
 
@@ -668,10 +703,8 @@ export default function AdminContainersPage() {
               </p>
             </div>
             <div className="bg-surface-container-high rounded-lg p-4">
-              <p className="text-xs text-on-surface-variant mb-1">在线服务器</p>
-              <p className="text-2xl font-bold text-primary">
-                {servers.filter(s => s.status === 'online').length} / {servers.length}
-              </p>
+              <p className="text-xs text-on-surface-variant mb-1">容器镜像</p>
+              <p className="text-2xl font-bold text-purple-400">{usedImages} / {totalImages}</p>
             </div>
           </div>
         </div>

@@ -35,9 +35,24 @@ export class ServerController {
     return this.serverService.listServerContainers(id);
   }
 
-  @Post(':id/containers/:containerId/start')
+  @Get(':id/containers/:containerId/start')
   @Roles('ADMIN')
   async startContainer(
+    @Param('id') serverId: string,
+    @Param('containerId') containerId: string,
+  ) {
+    return this.serverService.startContainer(serverId, containerId);
+  }
+
+  @Get(':id/images')
+  @Roles('ADMIN')
+  async listImages(@Param('id') id: string) {
+    return this.serverService.listServerImages(id);
+  }
+
+  @Post(':id/containers/:containerId/start')
+  @Roles('ADMIN')
+  async startContainerPost(
     @Param('id') serverId: string,
     @Param('containerId') containerId: string,
   ) {

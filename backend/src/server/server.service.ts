@@ -179,6 +179,42 @@ export class ServerService {
     }
   }
 
+  // 列出服务器上的所有镜像
+  async listServerImages(serverId: string) {
+    const server = await this.findOne(serverId);
+    
+    if (server.status !== 'online') {
+      throw new BadRequestException('Server is offline');
+    }
+
+    try {
+      this.logger.log(`请求服务器 ${serverId} 的镜像列表（使用 Docker SDK）`);
+      
+      const docker = new Docker({
+        host: server.host,
+        port: 2375,
+      });
+      
+      // 列出所有镜像
+      const images = await docker.listImages();
+      
+      // 格式化镜像信息
+      const formattedImages = images.map(image => ({
+        id: image.Id,
+        tags: image.RepoTags || [],
+        size: image.Size,
+        created: new Date(image.Created * 1000).toISOString(),
+      }));
+      
+      this.logger.log(`找到 ${formattedImages.length} 个镜像`);
+      
+      return { images: formattedImages };
+    } catch (error) {
+      this.logger.error(`获取服务器 ${serverId} 镜像列表失败: ${error.message}`);
+      throw new BadRequestException(`Failed to list images: ${error.message}`);
+    }
+  }
+
   // 启动容器
   async startContainer(serverId: string, containerId: string) {
     const server = await this.findOne(serverId);
