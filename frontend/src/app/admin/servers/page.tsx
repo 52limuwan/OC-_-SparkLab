@@ -37,8 +37,6 @@ export default function ServersPage() {
     name: '',
   });
   const [newServerToken, setNewServerToken] = useState<string | null>(null);
-  const [selectedServerForContainers, setSelectedServerForContainers] = useState<string | null>(null);
-  const [serverContainers, setServerContainers] = useState<any[]>([]);
 
   useEffect(() => {
     checkAuth();
@@ -112,16 +110,6 @@ export default function ServersPage() {
       loadServers();
     } catch (error: any) {
       alert(error.response?.data?.message || '删除失败');
-    }
-  };
-
-  const handleViewContainers = async (serverId: string) => {
-    try {
-      const { data } = await api.get(`/servers/${serverId}/containers`);
-      setServerContainers(data.containers || []);
-      setSelectedServerForContainers(serverId);
-    } catch (error: any) {
-      alert(error.response?.data?.message || '获取容器列表失败');
     }
   };
 
@@ -214,13 +202,6 @@ export default function ServersPage() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => handleViewContainers(server.id)}
-                        disabled={server.status !== 'online'}
-                        className="px-3 py-1.5 text-sm bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        查看容器
-                      </button>
                       <button
                         onClick={() => handleTest(server.id)}
                         className="px-3 py-1.5 text-sm bg-surface-container text-on-surface-variant rounded-lg hover:bg-surface-bright transition-all"
@@ -391,80 +372,6 @@ export default function ServersPage() {
                 className="w-full bg-primary text-on-primary px-4 py-2 rounded-lg hover:opacity-90 transition-all"
               >
                 我已保存，关闭
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 容器列表模态框 */}
-      {selectedServerForContainers && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-surface-container-high rounded-xl p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-primary">
-                服务器容器列表 - {servers.find(s => s.id === selectedServerForContainers)?.name}
-              </h3>
-              <button onClick={() => setSelectedServerForContainers(null)} className="text-on-surface-variant hover:text-primary">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="bg-surface-container rounded-xl overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-surface-container-highest border-b border-white/10">
-                  <tr>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">容器 ID</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">名称</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">镜像</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">状态</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">端口</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {serverContainers.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="p-8 text-center text-on-surface-variant">
-                        该服务器上暂无容器
-                      </td>
-                    </tr>
-                  ) : (
-                    serverContainers.map((container) => (
-                      <tr key={container.id} className="border-b border-white/5 hover:bg-surface-container transition-colors">
-                        <td className="p-4 text-primary font-mono text-xs">{container.id.slice(0, 12)}</td>
-                        <td className="p-4 text-on-surface">{container.name}</td>
-                        <td className="p-4 text-on-surface-variant text-sm">{container.image}</td>
-                        <td className="p-4">
-                          <span className={`px-2 py-1 rounded text-xs ${
-                            container.status === 'running' ? 'bg-green-500/20 text-green-400' :
-                            container.status === 'exited' ? 'bg-gray-500/20 text-gray-400' :
-                            'bg-blue-500/20 text-blue-400'
-                          }`}>
-                            {container.status}
-                          </span>
-                        </td>
-                        <td className="p-4 text-on-surface-variant text-xs">
-                          {Object.entries(container.ports || {}).map(([port, bindings]: [string, any]) => (
-                            bindings && bindings[0] ? (
-                              <div key={port}>
-                                {port} → {bindings[0].HostPort}
-                              </div>
-                            ) : null
-                          ))}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={() => handleViewContainers(selectedServerForContainers)}
-                className="px-4 py-2 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-all"
-              >
-                刷新列表
               </button>
             </div>
           </div>
