@@ -5,7 +5,8 @@ import LoadingBar from '@/components/LoadingBar';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
-import { Eye, EyeOff, Lock, User } from 'lucide-react';
+import { authAPI } from '@/lib/api';
+import { Eye, EyeOff, Lock, User, Hash, AtSign } from 'lucide-react';
 
 export default function Login() {
     const router = useRouter();
@@ -17,12 +18,19 @@ export default function Login() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [showCredit, setShowCredit] = useState(false);
-    const [formData, setFormData] = useState({
+    const [isRegisterMode, setIsRegisterMode] = useState(false);
+    const [loginData, setLoginData] = useState({
         username: '',
         password: '',
     });
+    const [registerData, setRegisterData] = useState({
+        username: '',
+        displayName: '',
+        password: '',
+        confirmPassword: '',
+        qqNumber: '',
+    });
 
-    // 检查是否从注册页面跳转过来
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         if (params.get('registered') === 'true') {
@@ -30,7 +38,6 @@ export default function Login() {
         }
     }, []);
 
-    // 检查登录状态，如果已登录则跳转
     useEffect(() => {
         checkAuth();
     }, [checkAuth]);
@@ -45,13 +52,13 @@ export default function Login() {
         }
     }, [isAuthenticated, isLoading, user, router]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
         try {
-            await login(formData.username, formData.password);
+            await login(loginData.username, loginData.password);
             router.push('/dashboard');
         } catch (err: any) {
             setError(err.response?.data?.message || '账号或密码有误，请重新输入');
@@ -60,7 +67,40 @@ export default function Login() {
         }
     };
 
-    // 如果正在检查认证状态或已经登录，显示加载状态
+    const handleRegister = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+
+        if (registerData.password !== registerData.confirmPassword) {
+            setError('两次输入的密码不一致');
+            setLoading(false);
+            return;
+        }
+
+        try {
+            await authAPI.register({
+                username: registerData.username,
+                displayName: registerData.displayName,
+                password: registerData.password,
+                qqNumber: registerData.qqNumber,
+            });
+            setSuccess('注册成功！请登录您的账号');
+            setIsRegisterMode(false);
+            setRegisterData({
+                username: '',
+                displayName: '',
+                password: '',
+                confirmPassword: '',
+                qqNumber: '',
+            });
+        } catch (err: any) {
+            setError(err.response?.data?.message || '注册失败，用户名或QQ号可能已被使用');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     if (isLoading || isAuthenticated) {
         return <LoadingBar />;
     }
@@ -90,7 +130,7 @@ export default function Login() {
                 />
             </div>
 
-            {/* 右侧：登录表单 */}
+            {/* 右侧：登录/注册表单 */}
             <div className="flex items-center justify-center p-8 bg-background">
                 <div className="w-full max-w-md">
                     <div className="text-center mb-10">
@@ -98,87 +138,239 @@ export default function Login() {
                             className="text-3xl font-bold text-primary mb-3 tracking-tight cursor-pointer select-none"
                             onDoubleClick={() => setShowCredit(!showCredit)}
                         >
-                            登录 到 星火实验室
+                            {isRegisterMode ? '注册' : '登录'} 到 星火实验室
                         </h1>
                         {showCredit && (
                             <p className="text-sm text-on-surface-variant mb-2">
                                 由 21动漫1班 肖瑞杰 倾力制作
                             </p>
                         )}
+                        <p className="text-sm text-on-surface-variant">
+                            {isRegisterMode ? '创建您的账号，开始学习之旅' : '欢迎回来，继续您的学习之旅'}
+                        </p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div>
-                            <label className="block text-sm font-medium text-on-surface mb-1.5">账号</label>
-                            <div className="relative">
-                                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
-                                <input
-                                    type="text"
-                                    value={formData.username}
-                                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                    onFocus={() => setIsTyping(true)}
-                                    onBlur={() => setIsTyping(false)}
-                                    placeholder="用户名或QQ号"
-                                    required
-                                    minLength={3}
-                                    className="w-full h-12 pl-11 pr-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-on-surface mb-1.5">密码</label>
-                            <div className="relative">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
-                                <input
-                                    type={showPassword ? 'text' : 'password'}
-                                    value={formData.password}
-                                    onChange={(e) => {
-                                        setFormData({ ...formData, password: e.target.value });
-                                        setPasswordValue(e.target.value);
-                                    }}
-                                    placeholder="输入您的密码"
-                                    required
-                                    minLength={6}
-                                    className="w-full h-12 pl-11 pr-12 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors"
-                                >
-                                    {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                                </button>
-                            </div>
-                        </div>
-
-                        {error && (
-                            <div className="px-4 py-3 text-sm text-on-error-container bg-error-container border border-error-dim rounded-lg">
-                                {error}
-                            </div>
-                        )}
-
-                        {success && (
-                            <div className="px-4 py-3 text-sm text-green-800 bg-green-100 border border-green-300 rounded-lg">
-                                {success}
-                            </div>
-                        )}
-
+                    {/* 切换标签 */}
+                    <div className="flex gap-2 mb-6 bg-surface-container-high rounded-xl p-1">
                         <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full h-12 bg-primary hover:opacity-90 text-on-primary font-semibold rounded-xl transition-all active:opacity-85 disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={() => {
+                                setIsRegisterMode(false);
+                                setError('');
+                            }}
+                            className={`flex-1 py-2 rounded-lg transition-all ${
+                                !isRegisterMode
+                                    ? 'bg-primary text-on-primary'
+                                    : 'text-on-surface-variant hover:text-primary'
+                            }`}
                         >
-                            {loading ? '登录中...' : '登录'}
+                            登录
                         </button>
-                    </form>
-
-                    <div className="text-center text-sm text-on-surface-variant mt-7">
-                        暂无账号？{' '}
-                        <a href="/register" className="text-primary font-medium hover:underline">
-                            自助注册
-                        </a>
+                        <button
+                            onClick={() => {
+                                setIsRegisterMode(true);
+                                setError('');
+                                setSuccess('');
+                            }}
+                            className={`flex-1 py-2 rounded-lg transition-all ${
+                                isRegisterMode
+                                    ? 'bg-primary text-on-primary'
+                                    : 'text-on-surface-variant hover:text-primary'
+                            }`}
+                        >
+                            注册
+                        </button>
                     </div>
+
+                    {/* 登录表单 */}
+                    {!isRegisterMode && (
+                        <form onSubmit={handleLogin} className="space-y-5">
+                            <div>
+                                <label className="block text-sm font-medium text-on-surface mb-1.5">账号</label>
+                                <div className="relative">
+                                    <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
+                                    <input
+                                        type="text"
+                                        value={loginData.username}
+                                        onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
+                                        onFocus={() => setIsTyping(true)}
+                                        onBlur={() => setIsTyping(false)}
+                                        placeholder="至少3个字符"
+                                        required
+                                        minLength={3}
+                                        maxLength={20}
+                                        className="w-full h-12 pl-11 pr-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-on-surface mb-1.5">密码</label>
+                                <div className="relative">
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        value={loginData.password}
+                                        onChange={(e) => {
+                                            setLoginData({ ...loginData, password: e.target.value });
+                                            setPasswordValue(e.target.value);
+                                        }}
+                                        placeholder="至少6个字符"
+                                        required
+                                        minLength={6}
+                                        maxLength={32}
+                                        className="w-full h-12 pl-11 pr-12 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors"
+                                    >
+                                        {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {error && (
+                                <div className="px-4 py-3 text-sm text-on-error-container bg-error-container border border-error-dim rounded-lg">
+                                    {error}
+                                </div>
+                            )}
+
+                            {success && (
+                                <div className="px-4 py-3 text-sm text-green-800 bg-green-100 border border-green-300 rounded-lg">
+                                    {success}
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full h-12 bg-primary hover:opacity-90 text-on-primary font-semibold rounded-xl transition-all active:opacity-85 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {loading ? '登录中...' : '登录'}
+                            </button>
+                        </form>
+                    )}
+
+                    {/* 注册表单 */}
+                    {isRegisterMode && (
+                        <form onSubmit={handleRegister} className="space-y-5">
+                            <div>
+                                <label className="block text-sm font-medium text-on-surface mb-1.5">用户名</label>
+                                <div className="relative">
+                                    <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
+                                    <input
+                                        type="text"
+                                        value={registerData.username}
+                                        onChange={(e) => setRegisterData({ ...registerData, username: e.target.value })}
+                                        onFocus={() => setIsTyping(true)}
+                                        onBlur={() => setIsTyping(false)}
+                                        placeholder="至少3个字符"
+                                        required
+                                        minLength={3}
+                                        maxLength={20}
+                                        pattern="[a-zA-Z0-9_]+"
+                                        title="只能包含字母、数字和下划线"
+                                        className="w-full h-12 pl-11 pr-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-on-surface mb-1.5">学生名字</label>
+                                <div className="relative">
+                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
+                                    <input
+                                        type="text"
+                                        value={registerData.displayName}
+                                        onChange={(e) => setRegisterData({ ...registerData, displayName: e.target.value })}
+                                        placeholder="至少2个字符"
+                                        required
+                                        minLength={2}
+                                        maxLength={20}
+                                        className="w-full h-12 pl-11 pr-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-on-surface mb-1.5">QQ号</label>
+                                <div className="relative">
+                                    <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
+                                    <input
+                                        type="text"
+                                        value={registerData.qqNumber}
+                                        onChange={(e) => setRegisterData({ ...registerData, qqNumber: e.target.value })}
+                                        placeholder="5-11位数字"
+                                        required
+                                        minLength={5}
+                                        maxLength={11}
+                                        pattern="[0-9]+"
+                                        title="只能包含数字"
+                                        className="w-full h-12 pl-11 pr-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-on-surface mb-1.5">密码</label>
+                                <div className="relative">
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        value={registerData.password}
+                                        onChange={(e) => {
+                                            setRegisterData({ ...registerData, password: e.target.value });
+                                            setPasswordValue(e.target.value);
+                                        }}
+                                        placeholder="至少6个字符"
+                                        required
+                                        minLength={6}
+                                        maxLength={32}
+                                        className="w-full h-12 pl-11 pr-12 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors"
+                                    >
+                                        {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-on-surface mb-1.5">确认密码</label>
+                                <div className="relative">
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        value={registerData.confirmPassword}
+                                        onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })}
+                                        placeholder="再次输入密码"
+                                        required
+                                        minLength={6}
+                                        maxLength={32}
+                                        className="w-full h-12 pl-11 pr-4 bg-surface-container-high border border-outline-variant rounded-xl text-sm text-on-surface placeholder-on-surface-variant focus:bg-surface-bright focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            {error && (
+                                <div className="px-4 py-3 text-sm text-on-error-container bg-error-container border border-error-dim rounded-lg">
+                                    {error}
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full h-12 bg-primary hover:opacity-90 text-on-primary font-semibold rounded-xl transition-all active:opacity-85 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {loading ? '注册中...' : '注册'}
+                            </button>
+                        </form>
+                    )}
                 </div>
             </div>
         </div>

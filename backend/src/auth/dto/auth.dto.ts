@@ -13,9 +13,9 @@ export class RegisterDto {
   @MinLength(6)
   password: string;
 
-  @IsOptional()
   @IsString()
-  qqNumber?: string;
+  @MinLength(5)
+  qqNumber: string;
 }
 
 export class LoginDto {
