@@ -42,7 +42,7 @@ export default api;
 
 // ==================== Auth API ====================
 export const authAPI = {
-  register: (data: { username: string; password: string; email?: string; qqNumber?: string }) =>
+  register: (data: { username: string; password: string; qqNumber?: string }) =>
     api.post('/auth/register', data),
   
   login: (data: { username: string; password: string }) =>

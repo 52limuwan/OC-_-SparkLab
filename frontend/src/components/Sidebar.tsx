@@ -119,7 +119,9 @@ export default function Sidebar() {
             })()}
             <div className="overflow-hidden flex-1">
               <p className="text-xs font-bold text-primary truncate">{user.username}</p>
-              <p className="text-[10px] text-on-surface-variant truncate">{user.email}</p>
+              <p className="text-[10px] text-on-surface-variant truncate">
+                {user.role === 'ADMIN' ? '管理员' : user.role === 'TEACHER' ? '教师' : '学生'}
+              </p>
             </div>
           </Link>
         )}

@@ -4,7 +4,6 @@ import { authAPI } from '@/lib/api';
 interface User {
   id: string;
   username: string;
-  email: string;
   role: string;
   qqNumber?: string;
   avatar?: string;
@@ -16,7 +15,7 @@ interface AuthState {
   isLoading: boolean;
   isLoggingOut: boolean;
   login: (username: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
+  register: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
@@ -32,8 +31,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ user: response.data.user, isAuthenticated: true });
   },
 
-  register: async (username, email, password) => {
-    await authAPI.register({ username, email, password });
+  register: async (username, password) => {
+    await authAPI.register({ username, password });
   },
 
   logout: async () => {

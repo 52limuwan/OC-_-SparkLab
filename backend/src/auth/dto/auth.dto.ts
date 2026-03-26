@@ -1,13 +1,9 @@
-import { IsEmail, IsString, MinLength, IsOptional } from 'class-validator';
+import { IsString, MinLength, IsOptional } from 'class-validator';
 
 export class RegisterDto {
   @IsString()
   @MinLength(3)
   username: string;
-
-  @IsOptional()
-  @IsEmail()
-  email?: string;
 
   @IsString()
   @MinLength(6)
@@ -31,10 +27,6 @@ export class UpdateProfileDto {
   @IsString()
   @MinLength(3)
   username?: string;
-
-  @IsOptional()
-  @IsEmail()
-  email?: string;
 
   @IsOptional()
   @IsString()

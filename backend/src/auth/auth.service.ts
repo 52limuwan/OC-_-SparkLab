@@ -31,7 +31,7 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: {
         username: registerDto.username,
-        email: registerDto.email || `${registerDto.username}@sparklab.local`, // 生成默认邮箱
+        email: `${registerDto.username}@sparklab.local`, // 生成默认邮箱
         password: hashedPassword,
         role: 'STUDENT',
         qqNumber: registerDto.qqNumber,
@@ -125,20 +125,6 @@ export class AuthService {
 
       if (existingUser) {
         throw new ConflictException('Username already exists');
-      }
-    }
-
-    // 检查邮箱是否已被占用
-    if (updateProfileDto.email) {
-      const existingUser = await this.prisma.user.findFirst({
-        where: {
-          email: updateProfileDto.email,
-          NOT: { id: userId },
-        },
-      });
-
-      if (existingUser) {
-        throw new ConflictException('Email already exists');
       }
     }
 
