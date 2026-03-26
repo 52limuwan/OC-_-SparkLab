@@ -132,34 +132,36 @@ export default function AdminUsersPage() {
           </div>
 
           <div className="bg-surface-container-high rounded-xl overflow-hidden">
-            <table className="w-full">
+            <table className="w-full table-fixed">
               <thead className="bg-surface-container border-b border-white/10">
                 <tr>
-                  <th className="text-left p-4 text-sm font-medium text-on-surface-variant">头像</th>
+                  <th className="text-left p-4 text-sm font-medium text-on-surface-variant w-20">头像</th>
                   <th className="text-left p-4 text-sm font-medium text-on-surface-variant">学生名字</th>
                   <th className="text-left p-4 text-sm font-medium text-on-surface-variant">用户名</th>
                   <th className="text-left p-4 text-sm font-medium text-on-surface-variant">QQ号</th>
-                  <th className="text-left p-4 text-sm font-medium text-on-surface-variant">角色</th>
-                  <th className="text-left p-4 text-sm font-medium text-on-surface-variant">容器数</th>
-                  <th className="text-left p-4 text-sm font-medium text-on-surface-variant">提交数</th>
-                  <th className="text-left p-4 text-sm font-medium text-on-surface-variant">操作</th>
+                  <th className="text-left p-4 text-sm font-medium text-on-surface-variant w-24">角色</th>
+                  <th className="text-left p-4 text-sm font-medium text-on-surface-variant w-24">容器数</th>
+                  <th className="text-left p-4 text-sm font-medium text-on-surface-variant w-24">提交数</th>
+                  <th className="text-left p-4 text-sm font-medium text-on-surface-variant w-24">操作</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((u) => (
                   <tr key={u.id} className="border-b border-white/5 hover:bg-surface-container transition-colors">
-                    <td className="p-4">
-                      {u.qqNumber ? (
-                        <img 
-                          src={getQQAvatar(u.qqNumber) || ''} 
-                          alt={u.displayName || u.username}
-                          className="w-10 h-10 rounded-full"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
-                          {(u.displayName || u.username).charAt(0).toUpperCase()}
-                        </div>
-                      )}
+                    <td className="p-4 w-20">
+                      <div className="w-10 h-10 flex-shrink-0">
+                        {u.qqNumber ? (
+                          <img 
+                            src={getQQAvatar(u.qqNumber) || ''} 
+                            alt={u.displayName || u.username}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                            {(u.displayName || u.username).charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="p-4 text-primary">{u.displayName || '未命名'}</td>
                     <td className="p-4 text-on-surface-variant">@{u.username}</td>

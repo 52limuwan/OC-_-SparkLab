@@ -1,15 +1,17 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DockerService } from './docker.service';
+import { ServerService } from '../server/server.service';
 
 @Injectable()
 export class ContainerService {
   constructor(
     private prisma: PrismaService,
     private dockerService: DockerService,
+    private serverService: ServerService,
   ) {}
 
-  async create(userId: string, labId: string) {
+  async create(userId: string, labId: string, serverId?: string) {
     // 检查用户容器数量限制
     const userContainers = await this.prisma.container.count({
       where: {
@@ -32,11 +34,17 @@ export class ContainerService {
       throw new NotFoundException('Lab not found');
     }
 
+    // 选择服务器（如果未指定，自动选择负载最低的）
+    if (!serverId) {
+      serverId = await this.serverService.selectBestServer();
+    }
+
     // 创建容器记录
     const container = await this.prisma.container.create({
       data: {
         userId,
         labId,
+        serverId,
         containerId: '', // 临时占位
         status: 'creating',
         cpuLimit: lab.cpuLimit,
@@ -45,13 +53,17 @@ export class ContainerService {
     });
 
     try {
-      // 创建 Docker 容器
-      const dockerContainer = await this.dockerService.createContainer({
-        image: lab.dockerImage,
-        cpuLimit: lab.cpuLimit,
-        memoryLimit: lab.memoryLimit,
-        name: `spark-lab-${container.id}`,
-      });
+      // 在远程服务器上创建 Docker 容器
+      const dockerContainer = await this.serverService.executeDockerCommand(
+        serverId,
+        'docker:create',
+        {
+          image: lab.dockerImage,
+          name: `spark-lab-${container.id}`,
+          cpuLimit: lab.cpuLimit,
+          memoryLimit: lab.memoryLimit,
+        },
+      );
 
       // 更新容器信息
       const updated = await this.prisma.container.update({
@@ -120,7 +132,15 @@ export class ContainerService {
       return container;
     }
 
-    await this.dockerService.startContainer(container.containerId);
+    if (container.serverId) {
+      await this.serverService.executeDockerCommand(
+        container.serverId,
+        'docker:start',
+        { containerId: container.containerId },
+      );
+    } else {
+      await this.dockerService.startContainer(container.containerId);
+    }
 
     return this.prisma.container.update({
       where: { id },
@@ -136,7 +156,15 @@ export class ContainerService {
   async stop(id: string, userId: string) {
     const container = await this.findOne(id, userId);
 
-    await this.dockerService.stopContainer(container.containerId);
+    if (container.serverId) {
+      await this.serverService.executeDockerCommand(
+        container.serverId,
+        'docker:stop',
+        { containerId: container.containerId },
+      );
+    } else {
+      await this.dockerService.stopContainer(container.containerId);
+    }
 
     return this.prisma.container.update({
       where: { id },
@@ -151,7 +179,15 @@ export class ContainerService {
     const container = await this.findOne(id, userId);
 
     try {
-      await this.dockerService.removeContainer(container.containerId);
+      if (container.serverId) {
+        await this.serverService.executeDockerCommand(
+          container.serverId,
+          'docker:remove',
+          { containerId: container.containerId },
+        );
+      } else {
+        await this.dockerService.removeContainer(container.containerId);
+      }
     } catch (error) {
       // 容器可能已经不存在，继续删除记录
     }
@@ -182,7 +218,16 @@ export class ContainerService {
       throw new BadRequestException('Container is not running');
     }
 
-    const result = await this.dockerService.execCommand(container.containerId, command);
-    return result;
+    if (container.serverId) {
+      const result = await this.serverService.executeDockerCommand(
+        container.serverId,
+        'docker:exec',
+        { containerId: container.containerId, command },
+      );
+      return { output: result.output };
+    } else {
+      const result = await this.dockerService.execCommand(container.containerId, command);
+      return result;
+    }
   }
 }

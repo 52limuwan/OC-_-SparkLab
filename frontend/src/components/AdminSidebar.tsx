@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Users, BookOpen, Container, LogOut, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen, Container, LogOut, Settings, Server } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { getUserAvatarOrInitial } from '@/lib/avatar';
 import { cn } from '@/lib/utils';
@@ -12,6 +12,7 @@ const adminNavItems = [
   { icon: LayoutDashboard, label: '统计概览', href: '/admin' },
   { icon: Users, label: '用户管理', href: '/admin/users' },
   { icon: BookOpen, label: '课程管理', href: '/admin/courses' },
+  { icon: Server, label: '服务器管理', href: '/admin/servers' },
   { icon: Container, label: '容器管理', href: '/admin/containers' },
 ];
 

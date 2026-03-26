@@ -1,0 +1,24 @@
+{
+  "name": "spark-lab-agent",
+  "version": "1.0.0",
+  "description": "Spark Lab Server Agent - 远程服务器代理",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "install-service": "node dist/install-service.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "dockerode": "^4.0.10",
+    "socket.io-client": "^4.7.0",
+    "systeminformation": "^5.21.0"
+  },
+  "devDependencies": {
+    "@types/dockerode": "^4.0.1",
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}

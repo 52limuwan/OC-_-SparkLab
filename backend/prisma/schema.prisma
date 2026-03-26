@@ -118,6 +118,7 @@ model Container {
   id           String   @id @default(uuid())
   userId       String
   labId        String
+  serverId     String?  // 所属服务器
   containerId  String   @unique // Docker 容器 ID
   status       String   @default("creating") // creating, running, stopped, error
   
@@ -140,6 +141,7 @@ model Container {
   // 关联
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   lab          Lab      @relation(fields: [labId], references: [id], onDelete: Cascade)
+  server       Server?  @relation(fields: [serverId], references: [id], onDelete: SetNull)
   snapshots    Snapshot[]
   
   @@map("containers")
@@ -180,17 +182,37 @@ model Submission {
   @@map("submissions")
 }
 
-// ==================== 多节点架构（预留）====================
-model Node {
-  id          String   @id @default(uuid())
-  name        String
-  host        String   @unique
-  port        Int      @default(2375)
-  status      String   @default("offline") // online, offline, maintenance
-  load        Float    @default(0.0) // 0.0 - 1.0
-  maxContainers Int    @default(10)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// ==================== 服务器管理系统 ====================
+model Server {
+  id            String   @id @default(uuid())
+  name          String   // 服务器名称，如 "实验服务器1"
+  host          String   @default("") // Agent 模式不需要
+  port          Int      @default(0) // Agent 模式不需要
+  username      String   @default("") // Agent 模式不需要
+  authType      String   @default("password") // password, key
+  password      String?  // Agent Token（Agent 模式）或 SSH 密码
+  privateKey    String?  // SSH 私钥（SSH 模式）
   
-  @@map("nodes")
+  // 服务器状态
+  status        String   @default("offline") // online, offline, error, maintenance
+  lastCheckAt   DateTime @default(now())
+  
+  // 资源配置
+  maxContainers Int      @default(10) // 最大容器数（保留字段）
+  cpuCores      Int      @default(0) // CPU 核心数（Agent 上报）
+  cpuModel      String?  // CPU 型号（Agent 上报）
+  totalMemory   Int      @default(0) // 总内存 MB（Agent 上报）
+  
+  // 统计信息
+  activeContainers Int   @default(0) // 当前活跃容器数
+  cpuUsage      Float    @default(0.0) // CPU 使用率 0-100
+  memoryUsage   Float    @default(0.0) // 内存使用率 0-100
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // 关联
+  containers    Container[]
+  
+  @@map("servers")
 }
