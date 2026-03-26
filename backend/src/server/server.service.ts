@@ -152,10 +152,9 @@ export class ServerService {
       this.logger.log(`请求服务器 ${serverId} 的容器列表（使用 Docker SDK）`);
       
       // 创建连接到远程 Docker 的实例
-      // 注意：需要在远程服务器上配置 Docker 监听 TCP 端口
       const docker = new Docker({
         host: server.host,
-        port: 2375, // Docker 默认 TCP 端口
+        port: 2375,
       });
       
       // 列出所有容器（包括停止的）
@@ -164,7 +163,7 @@ export class ServerService {
       // 格式化容器信息
       const formattedContainers = containers.map(container => ({
         id: container.Id,
-        name: container.Names[0]?.replace(/^\//, ''), // 移除开头的 /
+        name: container.Names[0]?.replace(/^\//, ''),
         image: container.Image,
         status: container.State,
         created: new Date(container.Created * 1000).toISOString(),
@@ -177,6 +176,84 @@ export class ServerService {
     } catch (error) {
       this.logger.error(`获取服务器 ${serverId} 容器列表失败: ${error.message}`);
       throw new BadRequestException(`Failed to list containers: ${error.message}`);
+    }
+  }
+
+  // 启动容器
+  async startContainer(serverId: string, containerId: string) {
+    const server = await this.findOne(serverId);
+    
+    if (server.status !== 'online') {
+      throw new BadRequestException('Server is offline');
+    }
+
+    try {
+      this.logger.log(`启动容器 ${containerId} 在服务器 ${serverId}`);
+      
+      const docker = new Docker({
+        host: server.host,
+        port: 2375,
+      });
+      
+      const container = docker.getContainer(containerId);
+      await container.start();
+      
+      return { message: 'Container started successfully' };
+    } catch (error) {
+      this.logger.error(`启动容器失败: ${error.message}`);
+      throw new BadRequestException(`Failed to start container: ${error.message}`);
+    }
+  }
+
+  // 停止容器
+  async stopContainer(serverId: string, containerId: string) {
+    const server = await this.findOne(serverId);
+    
+    if (server.status !== 'online') {
+      throw new BadRequestException('Server is offline');
+    }
+
+    try {
+      this.logger.log(`停止容器 ${containerId} 在服务器 ${serverId}`);
+      
+      const docker = new Docker({
+        host: server.host,
+        port: 2375,
+      });
+      
+      const container = docker.getContainer(containerId);
+      await container.stop();
+      
+      return { message: 'Container stopped successfully' };
+    } catch (error) {
+      this.logger.error(`停止容器失败: ${error.message}`);
+      throw new BadRequestException(`Failed to stop container: ${error.message}`);
+    }
+  }
+
+  // 删除容器
+  async removeContainer(serverId: string, containerId: string) {
+    const server = await this.findOne(serverId);
+    
+    if (server.status !== 'online') {
+      throw new BadRequestException('Server is offline');
+    }
+
+    try {
+      this.logger.log(`删除容器 ${containerId} 在服务器 ${serverId}`);
+      
+      const docker = new Docker({
+        host: server.host,
+        port: 2375,
+      });
+      
+      const container = docker.getContainer(containerId);
+      await container.remove({ force: true }); // force: true 可以删除运行中的容器
+      
+      return { message: 'Container removed successfully' };
+    } catch (error) {
+      this.logger.error(`删除容器失败: ${error.message}`);
+      throw new BadRequestException(`Failed to remove container: ${error.message}`);
     }
   }
 

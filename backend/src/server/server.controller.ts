@@ -35,6 +35,33 @@ export class ServerController {
     return this.serverService.listServerContainers(id);
   }
 
+  @Post(':id/containers/:containerId/start')
+  @Roles('ADMIN')
+  async startContainer(
+    @Param('id') serverId: string,
+    @Param('containerId') containerId: string,
+  ) {
+    return this.serverService.startContainer(serverId, containerId);
+  }
+
+  @Post(':id/containers/:containerId/stop')
+  @Roles('ADMIN')
+  async stopContainer(
+    @Param('id') serverId: string,
+    @Param('containerId') containerId: string,
+  ) {
+    return this.serverService.stopContainer(serverId, containerId);
+  }
+
+  @Delete(':id/containers/:containerId')
+  @Roles('ADMIN')
+  async removeContainer(
+    @Param('id') serverId: string,
+    @Param('containerId') containerId: string,
+  ) {
+    return this.serverService.removeContainer(serverId, containerId);
+  }
+
   @Put(':id')
   @Roles('ADMIN')
   update(@Param('id') id: string, @Body() updateDto: any) {

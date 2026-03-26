@@ -167,6 +167,35 @@ export default function AdminContainersPage() {
     }
   };
 
+  const handleSystemContainerStart = async (serverId: string, containerId: string) => {
+    try {
+      await api.post(`/servers/${serverId}/containers/${containerId}/start`);
+      loadAllServerContainers();
+    } catch (error: any) {
+      alert(`启动容器失败: ${error.response?.data?.message || error.message}`);
+    }
+  };
+
+  const handleSystemContainerStop = async (serverId: string, containerId: string) => {
+    if (!confirm('确定要停止此容器吗？')) return;
+    try {
+      await api.post(`/servers/${serverId}/containers/${containerId}/stop`);
+      loadAllServerContainers();
+    } catch (error: any) {
+      alert(`停止容器失败: ${error.response?.data?.message || error.message}`);
+    }
+  };
+
+  const handleSystemContainerRemove = async (serverId: string, containerId: string) => {
+    if (!confirm('确定要删除此容器吗？此操作不可恢复！')) return;
+    try {
+      await api.delete(`/servers/${serverId}/containers/${containerId}`);
+      loadAllServerContainers();
+    } catch (error: any) {
+      alert(`删除容器失败: ${error.response?.data?.message || error.message}`);
+    }
+  };
+
   const filteredContainers = selectedServer === 'all' 
     ? containers 
     : containers.filter(c => c.serverId === selectedServer);
@@ -259,15 +288,24 @@ export default function AdminContainersPage() {
             {/* 桌面端表格视图 */}
             <div className="hidden lg:block bg-surface-container-high rounded-xl overflow-hidden">
               <table className="w-full">
+                <colgroup>
+                  <col style={{ width: '10%', minWidth: '80px' }} />
+                  <col style={{ width: '15%', minWidth: '120px' }} />
+                  <col style={{ width: '12%', minWidth: '100px' }} />
+                  <col style={{ width: '25%', minWidth: '150px' }} />
+                  <col style={{ width: '10%', minWidth: '80px' }} />
+                  <col style={{ width: '15%', minWidth: '120px' }} />
+                  <col style={{ width: '13%', minWidth: '100px' }} />
+                </colgroup>
                 <thead className="bg-surface-container border-b border-white/10">
                   <tr>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">容器ID</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">服务器</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">用户</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">实验</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">状态</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">创建时间</th>
-                    <th className="text-left p-4 text-sm font-medium text-on-surface-variant">操作</th>
+                    <th className="text-left p-3 text-sm font-medium text-on-surface-variant">容器ID</th>
+                    <th className="text-left p-3 text-sm font-medium text-on-surface-variant">服务器</th>
+                    <th className="text-left p-3 text-sm font-medium text-on-surface-variant">用户</th>
+                    <th className="text-left p-3 text-sm font-medium text-on-surface-variant">实验</th>
+                    <th className="text-left p-3 text-sm font-medium text-on-surface-variant">状态</th>
+                    <th className="text-left p-3 text-sm font-medium text-on-surface-variant">创建时间</th>
+                    <th className="text-left p-3 text-sm font-medium text-on-surface-variant">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -280,24 +318,34 @@ export default function AdminContainersPage() {
                   ) : (
                     labContainers.map((c) => (
                       <tr key={c.id} className="border-b border-white/5 hover:bg-surface-container transition-colors">
-                        <td className="p-4 text-primary font-mono text-xs">{c.id.slice(0, 8)}</td>
-                        <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            <Server className="w-4 h-4 text-primary" />
-                            <span className="text-on-surface">{c.serverName || getServerName(c.serverId)}</span>
-                            <div className={`w-2 h-2 rounded-full ${
+                        <td className="p-3">
+                          <span className="text-primary font-mono text-xs block truncate" title={c.id}>
+                            {c.id.slice(0, 8)}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Server className="w-4 h-4 text-primary flex-shrink-0" />
+                            <span className="text-on-surface text-sm truncate" title={c.serverName || getServerName(c.serverId)}>
+                              {c.serverName || getServerName(c.serverId)}
+                            </span>
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                               getServerStatus(c.serverId) === 'online' ? 'bg-green-500' : 'bg-gray-500'
                             }`} />
                           </div>
                         </td>
-                        <td className="p-4 text-on-surface-variant">
-                          {c.user?.displayName || c.user?.username}
+                        <td className="p-3">
+                          <span className="text-on-surface-variant text-sm block truncate" title={c.user?.displayName || c.user?.username}>
+                            {c.user?.displayName || c.user?.username}
+                          </span>
                         </td>
-                        <td className="p-4 text-on-surface-variant">
-                          {c.lab?.title}
+                        <td className="p-3">
+                          <span className="text-on-surface-variant text-sm block truncate" title={c.lab?.title}>
+                            {c.lab?.title}
+                          </span>
                         </td>
-                        <td className="p-4">
-                          <span className={`px-2 py-1 rounded text-xs ${
+                        <td className="p-3">
+                          <span className={`px-2 py-1 rounded text-xs inline-block whitespace-nowrap ${
                             c.status === 'running' ? 'bg-green-500/20 text-green-400' : 
                             c.status === 'creating' ? 'bg-blue-500/20 text-blue-400' :
                             c.status === 'stopped' ? 'bg-gray-500/20 text-gray-400' :
@@ -308,16 +356,23 @@ export default function AdminContainersPage() {
                              c.status === 'stopped' ? '已停止' : c.status}
                           </span>
                         </td>
-                        <td className="p-4 text-on-surface-variant text-xs">
-                          {c.createdAt ? new Date(c.createdAt).toLocaleString('zh-CN') : '-'}
+                        <td className="p-3">
+                          <span className="text-on-surface-variant text-xs block">
+                            {c.createdAt ? new Date(c.createdAt).toLocaleString('zh-CN', { 
+                              month: '2-digit', 
+                              day: '2-digit', 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            }) : '-'}
+                          </span>
                         </td>
-                        <td className="p-4">
+                        <td className="p-3">
                           {c.status === 'running' && (
                             <button
                               onClick={() => handleForceStop(c.id)}
-                              className="text-red-400 hover:text-red-300 transition-colors text-sm"
+                              className="text-red-400 hover:text-red-300 transition-colors text-sm whitespace-nowrap"
                             >
-                              强制停止
+                              停止
                             </button>
                           )}
                         </td>
@@ -404,42 +459,64 @@ export default function AdminContainersPage() {
             {/* 桌面端表格视图 */}
             <div className="hidden lg:block bg-surface-container-high rounded-xl overflow-hidden">
             <table className="w-full">
+              <colgroup>
+                <col style={{ width: '10%', minWidth: '80px' }} />
+                <col style={{ width: '15%', minWidth: '120px' }} />
+                <col style={{ width: '12%', minWidth: '100px' }} />
+                <col style={{ width: '25%', minWidth: '150px' }} />
+                <col style={{ width: '10%', minWidth: '80px' }} />
+                <col style={{ width: '15%', minWidth: '120px' }} />
+                <col style={{ width: '13%', minWidth: '100px' }} />
+              </colgroup>
               <thead className="bg-surface-container border-b border-white/10">
                 <tr>
-                  <th className="text-left p-4 text-sm font-medium text-on-surface-variant">容器ID</th>
-                  <th className="text-left p-4 text-sm font-medium text-on-surface-variant">服务器</th>
-                  <th className="text-left p-4 text-sm font-medium text-on-surface-variant">容器名称</th>
-                  <th className="text-left p-4 text-sm font-medium text-on-surface-variant">镜像</th>
-                  <th className="text-left p-4 text-sm font-medium text-on-surface-variant">状态</th>
-                  <th className="text-left p-4 text-sm font-medium text-on-surface-variant">创建时间</th>
+                  <th className="text-left p-3 text-sm font-medium text-on-surface-variant">容器ID</th>
+                  <th className="text-left p-3 text-sm font-medium text-on-surface-variant">服务器</th>
+                  <th className="text-left p-3 text-sm font-medium text-on-surface-variant">容器名称</th>
+                  <th className="text-left p-3 text-sm font-medium text-on-surface-variant">镜像</th>
+                  <th className="text-left p-3 text-sm font-medium text-on-surface-variant">状态</th>
+                  <th className="text-left p-3 text-sm font-medium text-on-surface-variant">创建时间</th>
+                  <th className="text-left p-3 text-sm font-medium text-on-surface-variant">操作</th>
                 </tr>
               </thead>
               <tbody>
                 {systemContainers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-on-surface-variant">
+                    <td colSpan={7} className="p-8 text-center text-on-surface-variant">
                       暂无系统容器
                     </td>
                   </tr>
                 ) : (
                   systemContainers.map((c) => (
                     <tr key={c.id} className="border-b border-white/5 hover:bg-surface-container transition-colors">
-                      <td className="p-4 text-primary font-mono text-xs">{c.id.slice(0, 8)}</td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <Server className="w-4 h-4 text-primary" />
-                          <span className="text-on-surface">{c.serverName || getServerName(c.serverId)}</span>
-                          <div className={`w-2 h-2 rounded-full ${
+                      <td className="p-3">
+                        <span className="text-primary font-mono text-xs block truncate" title={c.id}>
+                          {c.id.slice(0, 8)}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Server className="w-4 h-4 text-primary flex-shrink-0" />
+                          <span className="text-on-surface text-sm truncate" title={c.serverName || getServerName(c.serverId)}>
+                            {c.serverName || getServerName(c.serverId)}
+                          </span>
+                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                             getServerStatus(c.serverId) === 'online' ? 'bg-green-500' : 'bg-gray-500'
                           }`} />
                         </div>
                       </td>
-                      <td className="p-4 text-on-surface-variant">{c.name || '-'}</td>
-                      <td className="p-4 text-on-surface-variant">
-                        <span className="text-xs font-mono">{c.image || '-'}</span>
+                      <td className="p-3">
+                        <span className="text-on-surface-variant text-sm block truncate" title={c.name}>
+                          {c.name || '-'}
+                        </span>
                       </td>
-                      <td className="p-4">
-                        <span className={`px-2 py-1 rounded text-xs ${
+                      <td className="p-3">
+                        <span className="text-on-surface-variant text-xs font-mono block truncate" title={c.image}>
+                          {c.image || '-'}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded text-xs inline-block whitespace-nowrap ${
                           c.status === 'running' ? 'bg-green-500/20 text-green-400' : 
                           c.status === 'exited' ? 'bg-gray-500/20 text-gray-400' :
                           'bg-blue-500/20 text-blue-400'
@@ -448,8 +525,44 @@ export default function AdminContainersPage() {
                            c.status === 'exited' ? '已退出' : c.status}
                         </span>
                       </td>
-                      <td className="p-4 text-on-surface-variant text-xs">
-                        {c.created ? new Date(c.created).toLocaleString('zh-CN') : '-'}
+                      <td className="p-3">
+                        <span className="text-on-surface-variant text-xs block">
+                          {c.created ? new Date(c.created).toLocaleString('zh-CN', { 
+                            month: '2-digit', 
+                            day: '2-digit', 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          }) : '-'}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-1.5">
+                          {c.status === 'running' ? (
+                            <button
+                              onClick={() => handleSystemContainerStop(c.serverId, c.id)}
+                              className="text-yellow-400 hover:text-yellow-300 transition-colors text-xs whitespace-nowrap"
+                              title="停止容器"
+                            >
+                              停止
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleSystemContainerStart(c.serverId, c.id)}
+                              className="text-green-400 hover:text-green-300 transition-colors text-xs whitespace-nowrap"
+                              title="启动容器"
+                            >
+                              启动
+                            </button>
+                          )}
+                          <span className="text-on-surface-variant/30">|</span>
+                          <button
+                            onClick={() => handleSystemContainerRemove(c.serverId, c.id)}
+                            className="text-red-400 hover:text-red-300 transition-colors text-xs whitespace-nowrap"
+                            title="删除容器"
+                          >
+                            删除
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -507,6 +620,30 @@ export default function AdminContainersPage() {
                         {c.created ? new Date(c.created).toLocaleString('zh-CN') : '-'}
                       </span>
                     </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    {c.status === 'running' ? (
+                      <button
+                        onClick={() => handleSystemContainerStop(c.serverId, c.id)}
+                        className="flex-1 py-2 bg-yellow-500/10 text-yellow-400 rounded-lg hover:bg-yellow-500/20 transition-colors text-sm"
+                      >
+                        停止
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleSystemContainerStart(c.serverId, c.id)}
+                        className="flex-1 py-2 bg-green-500/10 text-green-400 rounded-lg hover:bg-green-500/20 transition-colors text-sm"
+                      >
+                        启动
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleSystemContainerRemove(c.serverId, c.id)}
+                      className="flex-1 py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors text-sm"
+                    >
+                      删除
+                    </button>
                   </div>
                 </div>
               ))
