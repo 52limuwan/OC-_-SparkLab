@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from '@nes
 import { PrismaService } from '../prisma/prisma.service';
 import { AgentGateway } from '../agent/agent.gateway';
 import { AgentService } from '../agent/agent.service';
+import * as Docker from 'dockerode';
 
 @Injectable()
 export class ServerService {
@@ -137,6 +138,46 @@ export class ServerService {
     }
 
     return this.agentGateway.sendCommand(agent.socketId, command, data);
+  }
+
+  // 列出服务器上的所有容器（使用 Docker SDK）
+  async listServerContainers(serverId: string) {
+    const server = await this.findOne(serverId);
+    
+    if (server.status !== 'online') {
+      throw new BadRequestException('Server is offline');
+    }
+
+    try {
+      this.logger.log(`请求服务器 ${serverId} 的容器列表（使用 Docker SDK）`);
+      
+      // 创建连接到远程 Docker 的实例
+      // 注意：需要在远程服务器上配置 Docker 监听 TCP 端口
+      const docker = new Docker({
+        host: server.host,
+        port: 2375, // Docker 默认 TCP 端口
+      });
+      
+      // 列出所有容器（包括停止的）
+      const containers = await docker.listContainers({ all: true });
+      
+      // 格式化容器信息
+      const formattedContainers = containers.map(container => ({
+        id: container.Id,
+        name: container.Names[0]?.replace(/^\//, ''), // 移除开头的 /
+        image: container.Image,
+        status: container.State,
+        created: new Date(container.Created * 1000).toISOString(),
+        ports: container.Ports,
+      }));
+      
+      this.logger.log(`找到 ${formattedContainers.length} 个容器`);
+      
+      return { containers: formattedContainers };
+    } catch (error) {
+      this.logger.error(`获取服务器 ${serverId} 容器列表失败: ${error.message}`);
+      throw new BadRequestException(`Failed to list containers: ${error.message}`);
+    }
   }
 
   private generateToken(): string {

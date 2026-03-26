@@ -37,23 +37,42 @@ class SparkLabAgent:
             
         @self.sio.on('docker:create')
         def on_create(data):
-            return self.handle_create(data)
+            print(f'[Agent] 收到 docker:create 请求')
+            result = self.handle_create(data)
+            self.sio.emit('docker:create:response', result, namespace='/agent')
             
         @self.sio.on('docker:start')
         def on_start(data):
-            return self.handle_start(data)
+            print(f'[Agent] 收到 docker:start 请求')
+            result = self.handle_start(data)
+            self.sio.emit('docker:start:response', result, namespace='/agent')
             
         @self.sio.on('docker:stop')
         def on_stop(data):
-            return self.handle_stop(data)
+            print(f'[Agent] 收到 docker:stop 请求')
+            result = self.handle_stop(data)
+            self.sio.emit('docker:stop:response', result, namespace='/agent')
             
         @self.sio.on('docker:remove')
         def on_remove(data):
-            return self.handle_remove(data)
+            print(f'[Agent] 收到 docker:remove 请求')
+            result = self.handle_remove(data)
+            self.sio.emit('docker:remove:response', result, namespace='/agent')
             
         @self.sio.on('docker:exec')
         def on_exec(data):
-            return self.handle_exec(data)
+            print(f'[Agent] 收到 docker:exec 请求')
+            result = self.handle_exec(data)
+            self.sio.emit('docker:exec:response', result, namespace='/agent')
+        
+        @self.sio.on('docker:list')
+        def on_list(data):
+            print(f'[Agent] 收到 docker:list 请求, 数据: {data}')
+            result = self.handle_list(data)
+            containers_count = len(result.get("data", {}).get("containers", []) if result.get("success") else [])
+            print(f'[Agent] 返回容器列表: {containers_count} 个容器')
+            print(f'[Agent] 发送响应事件: docker:list:response')
+            self.sio.emit('docker:list:response', result, namespace='/agent')
     
     def connect(self):
         print(f"[Agent] 连接到: {self.config['serverUrl']}")
@@ -99,6 +118,17 @@ class SparkLabAgent:
             except:
                 pass
             
+            # 获取本机 IP 地址
+            server_ip = 'unknown'
+            try:
+                import socket
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.connect(("8.8.8.8", 80))
+                server_ip = s.getsockname()[0]
+                s.close()
+            except:
+                pass
+            
             stats = {
                 'cpuUsage': cpu_percent,
                 'memoryUsage': mem.percent,
@@ -106,10 +136,11 @@ class SparkLabAgent:
                 'cpuCores': cpu_count,
                 'cpuModel': cpu_model,
                 'activeContainers': len(containers),
+                'serverIp': server_ip,
                 'timestamp': time.strftime('%Y-%m-%dT%H:%M:%S')
             }
             
-            print(f'[Agent] 发送心跳: CPU={cpu_percent:.1f}%, 内存={mem.percent:.1f}%, 核心={cpu_count}, 总内存={mem.total // (1024 * 1024)}MB')
+            print(f'[Agent] 发送心跳: CPU={cpu_percent:.1f}%, 内存={mem.percent:.1f}%, 核心={cpu_count}, 总内存={mem.total // (1024 * 1024)}MB, IP={server_ip}')
             self.sio.emit('agent:heartbeat', stats, namespace='/agent')
         except Exception as e:
             print(f'[Agent] 心跳失败: {e}')
@@ -192,6 +223,26 @@ class SparkLabAgent:
                 'success': True,
                 'output': result.output.decode('utf-8', errors='ignore')
             }
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    
+    def handle_list(self, data):
+        try:
+            # 获取所有容器（包括停止的）
+            all_containers = self.docker_client.containers.list(all=True)
+            containers_info = []
+            
+            for container in all_containers:
+                containers_info.append({
+                    'id': container.id,
+                    'name': container.name,
+                    'image': container.image.tags[0] if container.image.tags else container.image.id[:12],
+                    'status': container.status,
+                    'created': container.attrs['Created'],
+                    'ports': container.attrs['NetworkSettings']['Ports'],
+                })
+            
+            return {'success': True, 'data': {'containers': containers_info}}
         except Exception as e:
             return {'success': False, 'error': str(e)}
     

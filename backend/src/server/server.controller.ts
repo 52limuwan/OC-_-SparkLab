@@ -29,6 +29,12 @@ export class ServerController {
     return this.serverService.findOne(id);
   }
 
+  @Get(':id/containers')
+  @Roles('ADMIN')
+  async listContainers(@Param('id') id: string) {
+    return this.serverService.listServerContainers(id);
+  }
+
   @Put(':id')
   @Roles('ADMIN')
   update(@Param('id') id: string, @Body() updateDto: any) {

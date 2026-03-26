@@ -16,7 +16,7 @@ export class AgentService {
 
   constructor(private prisma: PrismaService) {}
 
-  async registerAgent(socketId: string, token: string, serverName: string) {
+  async registerAgent(socketId: string, token: string, serverName: string, clientIp: string) {
     // 验证 token 并查找服务器
     const server = await this.prisma.server.findFirst({
       where: {
@@ -38,16 +38,17 @@ export class AgentService {
       lastHeartbeat: new Date(),
     });
 
-    // 更新服务器状态为在线
+    // 更新服务器状态为在线，并保存 IP 地址
     await this.prisma.server.update({
       where: { id: server.id },
       data: {
         status: 'online',
+        host: clientIp, // 保存 Agent 的 IP 地址
         lastCheckAt: new Date(),
       },
     });
 
-    this.logger.log(`Agent 已注册: ${serverName} (${server.id})`);
+    this.logger.log(`Agent 已注册: ${serverName} (${server.id}) IP: ${clientIp}`);
   }
 
   async unregisterAgent(socketId: string) {
@@ -89,6 +90,11 @@ export class AgentService {
     }
     if (stats.cpuModel) {
       updateData.cpuModel = stats.cpuModel;
+    }
+    
+    // 如果 Agent 上报了自己的 IP，保存它
+    if (stats.serverIp) {
+      updateData.host = stats.serverIp;
     }
 
     this.logger.debug(`更新心跳: ${agent.serverName}, CPU: ${stats.cpuUsage}%, 内存: ${stats.memoryUsage}%, 核心: ${stats.cpuCores}, 总内存: ${stats.totalMemory}MB`);
