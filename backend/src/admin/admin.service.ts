@@ -169,9 +169,14 @@ export class AdminService {
       this.prisma.lab.count(),
       this.prisma.container.count({ where: { status: 'running' } }),
       this.prisma.submission.count(),
-      // 最近活跃的用户
+      // 最近活跃的用户（排除管理员）
       this.prisma.user.findMany({
         take: 5,
+        where: {
+          role: {
+            not: 'ADMIN',
+          },
+        },
         orderBy: { lastActiveAt: 'desc' },
         select: {
           id: true,
