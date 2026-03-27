@@ -140,7 +140,7 @@ export class ServerService {
     return this.agentGateway.sendCommand(agent.socketId, command, data);
   }
 
-  // 列出服务器上的所有容器（使用 Docker SDK）
+  // 列出服务器上的所有容器
   async listServerContainers(serverId: string) {
     const server = await this.findOne(serverId);
     
@@ -149,7 +149,7 @@ export class ServerService {
     }
 
     try {
-      this.logger.log(`请求服务器 ${serverId} 的容器列表（使用 Docker SDK）`);
+      this.logger.log(`请求服务器 ${serverId} 的容器列表`);
       
       // 创建连接到远程 Docker 的实例
       const docker = new Docker({
@@ -188,7 +188,7 @@ export class ServerService {
     }
 
     try {
-      this.logger.log(`请求服务器 ${serverId} 的镜像列表（使用 Docker SDK）`);
+      this.logger.log(`请求服务器 ${serverId} 的镜像列表`);
       
       const docker = new Docker({
         host: server.host,

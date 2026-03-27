@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { adminAPI, courseAPI, labAPI } from '@/lib/api';
 import AdminSidebar from '@/components/AdminSidebar';
 import LoadingBar from '@/components/LoadingBar';
-import { Edit, Trash2, Plus, X, BookOpen, Server, Disc } from 'lucide-react';
+import { Edit, Trash2, Plus, X, BookOpen, Server, Disc, Settings, Terminal, Database, HardDrive } from 'lucide-react';
 import api from '@/lib/api';
 
 interface ServerInfo {
@@ -20,6 +20,24 @@ interface DockerImage {
   tags: string[];
 }
 
+interface PortMapping {
+  containerPort: number;
+  hostPort?: number;
+  protocol: 'tcp' | 'udp';
+  random: boolean;
+}
+
+interface EnvironmentVar {
+  name: string;
+  value: string;
+}
+
+interface VolumeMount {
+  hostPath: string;
+  containerPath: string;
+  mode: 'ro' | 'rw';
+}
+
 export default function AdminCourseLabsPage() {
   const params = useParams();
   const router = useRouter();
@@ -31,6 +49,10 @@ export default function AdminCourseLabsPage() {
   const [servers, setServers] = useState<ServerInfo[]>([]);
   const [images, setImages] = useState<DockerImage[]>([]);
   const [selectedServer, setSelectedServer] = useState<string>('');
+  
+  const [portMappings, setPortMappings] = useState<PortMapping[]>([]);
+  const [environmentVars, setEnvironmentVars] = useState<EnvironmentVar[]>([]);
+  const [volumeMounts, setVolumeMounts] = useState<VolumeMount[]>([]);
 
   useEffect(() => {
     checkAuth();
@@ -96,6 +118,25 @@ export default function AdminCourseLabsPage() {
     }
   };
 
+  const handleStartEdit = (lab: any) => {
+    setEditingLab(lab);
+    if (lab.serverId) {
+      setSelectedServer(lab.serverId);
+    }
+    setPortMappings(lab.portMappings ? JSON.parse(lab.portMappings) : []);
+    setEnvironmentVars(lab.environmentVars ? JSON.parse(lab.environmentVars) : []);
+    setVolumeMounts(lab.volumeMounts ? JSON.parse(lab.volumeMounts) : []);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingLab(null);
+    setSelectedServer('');
+    setImages([]);
+    setPortMappings([]);
+    setEnvironmentVars([]);
+    setVolumeMounts([]);
+  };
+
   const handleSaveLab = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -107,31 +148,28 @@ export default function AdminCourseLabsPage() {
       difficulty: formData.get('difficulty') as string,
       order: parseInt(formData.get('order') as string),
       points: parseInt(formData.get('points') as string),
-      timeLimit: editingLab.timeLimit || 60,
+      timeLimit: parseInt(formData.get('timeLimit') as string) || 60,
       serverId: formData.get('serverId') as string || null,
       dockerImage: formData.get('dockerImage') as string,
       cpuLimit: parseFloat(formData.get('cpuLimit') as string),
       memoryLimit: parseInt(formData.get('memoryLimit') as string),
       startupCommand: formData.get('startupCommand') as string || null,
-      enableSsh: formData.get('enableSsh') === 'on',
-      enableVnc: formData.get('enableVnc') === 'on',
-      enableIde: formData.get('enableIde') === 'on',
+      shellCommand: formData.get('shellCommand') as string || '/bin/bash',
+      restartPolicy: formData.get('restartPolicy') as string,
+      portMappings,
+      environmentVars,
+      volumeMounts,
     };
 
     console.log('Saving lab with data:', data);
-    console.log('Editing lab:', editingLab);
 
     try {
       if (editingLab && editingLab.id) {
-        console.log('Updating lab:', editingLab.id);
         await adminAPI.updateLab(editingLab.id, data);
       } else {
-        console.log('Creating new lab');
         await adminAPI.createLab(data);
       }
-      setEditingLab(null);
-      setSelectedServer('');
-      setImages([]);
+      handleCancelEdit();
       await loadLabs(courseId);
     } catch (error: any) {
       console.error('Failed to save lab:', error);
@@ -151,17 +189,51 @@ export default function AdminCourseLabsPage() {
     }
   };
 
-  const handleStartEdit = (lab: any) => {
-    setEditingLab(lab);
-    if (lab.serverId) {
-      setSelectedServer(lab.serverId);
-    }
+  const addPortMapping = () => {
+    setPortMappings([...portMappings, {
+      containerPort: 80,
+      hostPort: 8080,
+      protocol: 'tcp',
+      random: false
+    }]);
   };
 
-  const handleCancelEdit = () => {
-    setEditingLab(null);
-    setSelectedServer('');
-    setImages([]);
+  const removePortMapping = (index: number) => {
+    setPortMappings(portMappings.filter((_, i) => i !== index));
+  };
+
+  const updatePortMapping = (index: number, field: keyof PortMapping, value: any) => {
+    const updated = [...portMappings];
+    updated[index] = { ...updated[index], [field]: value };
+    setPortMappings(updated);
+  };
+
+  const addEnvironmentVar = () => {
+    setEnvironmentVars([...environmentVars, { name: '', value: '' }]);
+  };
+
+  const removeEnvironmentVar = (index: number) => {
+    setEnvironmentVars(environmentVars.filter((_, i) => i !== index));
+  };
+
+  const updateEnvironmentVar = (index: number, field: keyof EnvironmentVar, value: string) => {
+    const updated = [...environmentVars];
+    updated[index] = { ...updated[index], [field]: value };
+    setEnvironmentVars(updated);
+  };
+
+  const addVolumeMount = () => {
+    setVolumeMounts([...volumeMounts, { hostPath: '', containerPath: '', mode: 'rw' }]);
+  };
+
+  const removeVolumeMount = (index: number) => {
+    setVolumeMounts(volumeMounts.filter((_, i) => i !== index));
+  };
+
+  const updateVolumeMount = (index: number, field: keyof VolumeMount, value: string) => {
+    const updated = [...volumeMounts];
+    updated[index] = { ...updated[index], [field]: value as any };
+    setVolumeMounts(updated);
   };
 
   if (isLoading) {
@@ -207,6 +279,9 @@ export default function AdminCourseLabsPage() {
                     setEditingLab({});
                     setSelectedServer('');
                     setImages([]);
+                    setPortMappings([]);
+                    setEnvironmentVars([]);
+                    setVolumeMounts([]);
                   }}
                   className="bg-primary text-on-primary px-4 py-2 rounded-lg flex items-center gap-2 hover:opacity-90 transition-all"
                 >
@@ -281,38 +356,38 @@ export default function AdminCourseLabsPage() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <form onSubmit={handleSaveLab} className="space-y-4">
-                <div>
-                  <label className="block text-sm text-on-surface-variant mb-2">实验名称 *</label>
-                  <input
-                    name="title"
-                    defaultValue={editingLab.title || ''}
-                    required
-                    className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
+              <form onSubmit={handleSaveLab} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm text-on-surface-variant mb-2">实验名称 *</label>
+                    <input
+                      name="title"
+                      defaultValue={editingLab.title || ''}
+                      required
+                      className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm text-on-surface-variant mb-2">实验描述</label>
-                  <textarea
-                    name="description"
-                    defaultValue={editingLab.description || ''}
-                    rows={2}
-                    className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm text-on-surface-variant mb-2">实验描述</label>
+                    <textarea
+                      name="description"
+                      defaultValue={editingLab.description || ''}
+                      rows={2}
+                      className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm text-on-surface-variant mb-2">实验内容（Markdown）</label>
-                  <textarea
-                    name="content"
-                    defaultValue={editingLab.content || ''}
-                    rows={8}
-                    className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary font-mono text-sm"
-                  />
-                </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm text-on-surface-variant mb-2">实验内容（Markdown）</label>
+                    <textarea
+                      name="content"
+                      defaultValue={editingLab.content || ''}
+                      rows={6}
+                      className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary font-mono text-sm"
+                    />
+                  </div>
 
-                <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm text-on-surface-variant mb-2">排序 *</label>
                     <input
@@ -349,130 +424,333 @@ export default function AdminCourseLabsPage() {
                       className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
+
+                  <div>
+                    <label className="block text-sm text-on-surface-variant mb-2">时间限制（分钟）</label>
+                    <input
+                      name="timeLimit"
+                      type="number"
+                      defaultValue={editingLab.timeLimit || 60}
+                      min="1"
+                      className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm text-on-surface-variant mb-2">选择服务器</label>
-                    <select
-                      name="serverId"
-                      value={selectedServer}
-                      onChange={(e) => setSelectedServer(e.target.value)}
-                      className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="">不指定服务器</option>
-                      {servers.map(server => (
-                        <option key={server.id} value={server.id}>
-                          {server.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                <div className="border-t border-white/10 pt-6">
+                  <h4 className="text-lg font-bold text-primary mb-4 flex items-center gap-2">
+                    <Settings className="w-5 h-5" />
+                    容器配置
+                  </h4>
 
-                  <div>
-                    <label className="block text-sm text-on-surface-variant mb-2">选择镜像 *</label>
-                    {selectedServer ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-on-surface-variant mb-2">选择服务器</label>
                       <select
-                        name="dockerImage"
-                        defaultValue={editingLab.dockerImage || ''}
-                        required
+                        name="serverId"
+                        value={selectedServer}
+                        onChange={(e) => setSelectedServer(e.target.value)}
                         className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                       >
-                        {images.length === 0 ? (
-                          <option value="">该服务器暂无镜像</option>
-                        ) : (
-                          images.map((img) => (
-                            <option key={img.id} value={img.tags?.[0] || img.id.slice(0, 12)}>
-                              {img.tags?.[0] || img.id.slice(0, 12)}
-                            </option>
-                          ))
-                        )}
+                        <option value="">不指定服务器（自动分配）</option>
+                        {servers.map(server => (
+                          <option key={server.id} value={server.id}>
+                            {server.name}
+                          </option>
+                        ))}
                       </select>
-                    ) : (
+                    </div>
+
+                    <div>
+                      <label className="block text-sm text-on-surface-variant mb-2">Docker 镜像 *</label>
+                      {selectedServer ? (
+                        <select
+                          name="dockerImage"
+                          defaultValue={editingLab.dockerImage || ''}
+                          required
+                          className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                        >
+                          {images.length === 0 ? (
+                            <option value="">该服务器暂无镜像</option>
+                          ) : (
+                            images.map((img) => (
+                              <option key={img.id} value={img.tags?.[0] || img.id.slice(0, 12)}>
+                                {img.tags?.[0] || img.id.slice(0, 12)}
+                              </option>
+                            ))
+                          )}
+                        </select>
+                      ) : (
+                        <input
+                          name="dockerImage"
+                          defaultValue={editingLab.dockerImage || 'ubuntu:22.04'}
+                          required
+                          placeholder="ubuntu:22.04"
+                          className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm text-on-surface-variant mb-2">CPU 限制（核） *</label>
                       <input
-                        name="dockerImage"
-                        defaultValue={editingLab.dockerImage || 'ubuntu:22.04'}
+                        name="cpuLimit"
+                        type="number"
+                        step="0.1"
+                        defaultValue={editingLab.cpuLimit || 1.0}
                         required
-                        placeholder="ubuntu:22.04"
+                        min="0.1"
+                        max="16"
                         className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                       />
-                    )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm text-on-surface-variant mb-2">内存限制（MB） *</label>
+                      <input
+                        name="memoryLimit"
+                        type="number"
+                        defaultValue={editingLab.memoryLimit || 512}
+                        required
+                        min="128"
+                        step="128"
+                        className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm text-on-surface-variant mb-2">容器启动命令</label>
+                      <input
+                        name="startupCommand"
+                        defaultValue={editingLab.startupCommand || ''}
+                        placeholder="/usr/sbin/sshd -D"
+                        className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm text-on-surface-variant mb-2">进入容器的 Bash 命令</label>
+                      <input
+                        name="shellCommand"
+                        defaultValue={editingLab.shellCommand || '/bin/bash'}
+                        placeholder="/bin/bash"
+                        className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm text-on-surface-variant mb-2">重启策略</label>
+                      <select
+                        name="restartPolicy"
+                        defaultValue={editingLab.restartPolicy || 'unless-stopped'}
+                        className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="no">不重启</option>
+                        <option value="always">始终重启</option>
+                        <option value="unless-stopped">除非停止</option>
+                        <option value="on-failure">失败时重启</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm text-on-surface-variant mb-2">CPU 限制 *</label>
-                    <input
-                      name="cpuLimit"
-                      type="number"
-                      step="0.1"
-                      defaultValue={editingLab.cpuLimit || 1.0}
-                      required
-                      min="0.1"
-                      max="4"
-                      className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
+                <div className="border-t border-white/10 pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-bold text-primary flex items-center gap-2">
+                      <Terminal className="w-5 h-5" />
+                      端口映射
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={addPortMapping}
+                      className="bg-primary/20 text-primary px-3 py-1 rounded-lg text-sm hover:bg-primary/30 transition-all flex items-center gap-1"
+                    >
+                      <Plus className="w-4 h-4" />
+                      添加端口
+                    </button>
                   </div>
 
-                  <div>
-                    <label className="block text-sm text-on-surface-variant mb-2">内存限制（MB） *</label>
-                    <input
-                      name="memoryLimit"
-                      type="number"
-                      defaultValue={editingLab.memoryLimit || 512}
-                      required
-                      min="128"
-                      step="128"
-                      className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
+                  {portMappings.length === 0 ? (
+                    <p className="text-sm text-on-surface-variant">暂未配置端口映射</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {portMappings.map((pm, index) => (
+                        <div key={index} className="flex gap-3 items-center bg-surface-container p-3 rounded-lg">
+                          <div className="flex-1">
+                            <label className="text-xs text-on-surface-variant mb-1 block">容器端口</label>
+                            <input
+                              type="number"
+                              value={pm.containerPort}
+                              onChange={(e) => updatePortMapping(index, 'containerPort', parseInt(e.target.value))}
+                              className="w-full bg-surface-bright text-on-surface px-2 py-1 rounded text-sm"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <label className="text-xs text-on-surface-variant mb-1 block">主机端口</label>
+                            <input
+                              type="number"
+                              value={pm.hostPort || ''}
+                              disabled={pm.random}
+                              onChange={(e) => updatePortMapping(index, 'hostPort', parseInt(e.target.value))}
+                              className="w-full bg-surface-bright text-on-surface px-2 py-1 rounded text-sm disabled:opacity-50"
+                            />
+                          </div>
+                          <div className="w-24">
+                            <label className="text-xs text-on-surface-variant mb-1 block">协议</label>
+                            <select
+                              value={pm.protocol}
+                              onChange={(e) => updatePortMapping(index, 'protocol', e.target.value)}
+                              className="w-full bg-surface-bright text-on-surface px-2 py-1 rounded text-sm"
+                            >
+                              <option value="tcp">TCP</option>
+                              <option value="udp">UDP</option>
+                            </select>
+                          </div>
+                          <div className="w-24 flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={pm.random}
+                              onChange={(e) => updatePortMapping(index, 'random', e.target.checked)}
+                              className="w-4 h-4 text-primary"
+                              id={`random-${index}`}
+                            />
+                            <label htmlFor={`random-${index}`} className="text-xs text-on-surface-variant">随机</label>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removePortMapping(index)}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div>
-                  <label className="block text-sm text-on-surface-variant mb-2">启动命令</label>
-                  <input
-                    name="startupCommand"
-                    defaultValue={editingLab.startupCommand || ''}
-                    placeholder="/bin/bash"
-                    className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
+                <div className="border-t border-white/10 pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-bold text-primary flex items-center gap-2">
+                      <Database className="w-5 h-5" />
+                      环境变量
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={addEnvironmentVar}
+                      className="bg-primary/20 text-primary px-3 py-1 rounded-lg text-sm hover:bg-primary/30 transition-all flex items-center gap-1"
+                    >
+                      <Plus className="w-4 h-4" />
+                      添加变量
+                    </button>
+                  </div>
+
+                  {environmentVars.length === 0 ? (
+                    <p className="text-sm text-on-surface-variant">暂未配置环境变量</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {environmentVars.map((ev, index) => (
+                        <div key={index} className="flex gap-3 items-center bg-surface-container p-3 rounded-lg">
+                          <div className="flex-1">
+                            <label className="text-xs text-on-surface-variant mb-1 block">变量名</label>
+                            <input
+                              type="text"
+                              value={ev.name}
+                              onChange={(e) => updateEnvironmentVar(index, 'name', e.target.value)}
+                              placeholder="MYSQL_ROOT_PASSWORD"
+                              className="w-full bg-surface-bright text-on-surface px-2 py-1 rounded text-sm"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <label className="text-xs text-on-surface-variant mb-1 block">变量值</label>
+                            <input
+                              type="text"
+                              value={ev.value}
+                              onChange={(e) => updateEnvironmentVar(index, 'value', e.target.value)}
+                              placeholder="123456"
+                              className="w-full bg-surface-bright text-on-surface px-2 py-1 rounded text-sm"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeEnvironmentVar(index)}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      name="enableSsh"
-                      defaultChecked={editingLab.enableSsh !== false}
-                      id="enableSsh"
-                      className="w-4 h-4 text-primary focus:ring-primary"
-                    />
-                    <label htmlFor="enableSsh" className="text-sm text-on-surface">开启 SSH</label>
+                <div className="border-t border-white/10 pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-bold text-primary flex items-center gap-2">
+                      <HardDrive className="w-5 h-5" />
+                      卷挂载
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={addVolumeMount}
+                      className="bg-primary/20 text-primary px-3 py-1 rounded-lg text-sm hover:bg-primary/30 transition-all flex items-center gap-1"
+                    >
+                      <Plus className="w-4 h-4" />
+                      添加挂载
+                    </button>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      name="enableVnc"
-                      defaultChecked={editingLab.enableVnc}
-                      id="enableVnc"
-                      className="w-4 h-4 text-primary focus:ring-primary"
-                    />
-                    <label htmlFor="enableVnc" className="text-sm text-on-surface">开启 VNC</label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      name="enableIde"
-                      defaultChecked={editingLab.enableIde}
-                      id="enableIde"
-                      className="w-4 h-4 text-primary focus:ring-primary"
-                    />
-                    <label htmlFor="enableIde" className="text-sm text-on-surface">开启 IDE</label>
-                  </div>
+
+                  {volumeMounts.length === 0 ? (
+                    <p className="text-sm text-on-surface-variant">暂未配置卷挂载</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {volumeMounts.map((vm, index) => (
+                        <div key={index} className="flex gap-3 items-center bg-surface-container p-3 rounded-lg">
+                          <div className="flex-1">
+                            <label className="text-xs text-on-surface-variant mb-1 block">主机路径</label>
+                            <input
+                              type="text"
+                              value={vm.hostPath}
+                              onChange={(e) => updateVolumeMount(index, 'hostPath', e.target.value)}
+                              placeholder="/mydata/mysql/data"
+                              className="w-full bg-surface-bright text-on-surface px-2 py-1 rounded text-sm"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <label className="text-xs text-on-surface-variant mb-1 block">容器路径</label>
+                            <input
+                              type="text"
+                              value={vm.containerPath}
+                              onChange={(e) => updateVolumeMount(index, 'containerPath', e.target.value)}
+                              placeholder="/var/lib/mysql"
+                              className="w-full bg-surface-bright text-on-surface px-2 py-1 rounded text-sm"
+                            />
+                          </div>
+                          <div className="w-24">
+                            <label className="text-xs text-on-surface-variant mb-1 block">权限</label>
+                            <select
+                              value={vm.mode}
+                              onChange={(e) => updateVolumeMount(index, 'mode', e.target.value)}
+                              className="w-full bg-surface-bright text-on-surface px-2 py-1 rounded text-sm"
+                            >
+                              <option value="rw">读写</option>
+                              <option value="ro">只读</option>
+                            </select>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeVolumeMount(index)}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex gap-2 pt-4">
+                <div className="flex gap-2 pt-4 border-t border-white/10">
                   <button
                     type="button"
                     onClick={handleCancelEdit}

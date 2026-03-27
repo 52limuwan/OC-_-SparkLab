@@ -82,16 +82,29 @@ model Lab {
   // 服务器配置
   serverId    String?
   
-  // Docker 配置
+  // 容器核心配置
   dockerImage String   @default("ubuntu:22.04")
   cpuLimit    Float    @default(1.0)
   memoryLimit Int      @default(512) // MB
   
-  // 容器配置
-  startupCommand String?  // 容器启动命令
-  enableSsh      Boolean  @default(true)
-  enableVnc      Boolean  @default(false)
-  enableIde      Boolean  @default(false)
+  // 启动与执行配置
+  startupCommand   String?  // 容器启动命令 (CMD)
+  shellCommand     String   @default("/bin/bash")  // 进入容器的 bash 命令
+  
+  // 端口映射配置 (JSON 格式存储)
+  // [{"containerPort": 3306, "hostPort": 3306, "protocol": "tcp", "random": false}]
+  portMappings     String?
+  
+  // 环境变量配置 (JSON 格式存储)
+  // [{"name": "MYSQL_ROOT_PASSWORD", "value": "123456"}]
+  environmentVars  String?
+  
+  // 卷挂载配置 (JSON 格式存储)
+  // [{"hostPath": "/mydata/mysql/data", "containerPath": "/var/lib/mysql", "mode": "rw"}]
+  volumeMounts     String?
+  
+  // 重启策略
+  restartPolicy    String   @default("unless-stopped") // no, always, unless-stopped, on-failure
   
   // 判题配置
   judgeScript String?  // 判题脚本路径
@@ -132,10 +145,9 @@ model Container {
   containerId  String   @unique // Docker 容器 ID
   status       String   @default("creating") // creating, running, stopped, error
   
-  // 端口映射
-  sshPort      Int?
-  vncPort      Int?
-  idePort      Int?
+  // 端口映射 (JSON 格式存储实际分配的端口)
+  // [{"containerPort": 3306, "hostPort": 3306, "protocol": "tcp"}]
+  portMappings String?
   
   // 资源限制
   cpuLimit     Float    @default(1.0)

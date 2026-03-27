@@ -12,7 +12,6 @@ export class ContainerService {
   ) {}
 
   async create(userId: string, labId: string, serverId?: string) {
-    // 检查用户容器数量限制
     const userContainers = await this.prisma.container.count({
       where: {
         userId,
@@ -25,7 +24,6 @@ export class ContainerService {
       throw new BadRequestException(`Maximum ${maxContainers} containers allowed per user`);
     }
 
-    // 获取实验配置
     const lab = await this.prisma.lab.findUnique({
       where: { id: labId },
     });
@@ -34,12 +32,10 @@ export class ContainerService {
       throw new NotFoundException('Lab not found');
     }
 
-    // 选择服务器（如果未指定，自动选择负载最低的）
     if (!serverId) {
-      serverId = await this.serverService.selectBestServer();
+      serverId = lab.serverId || await this.serverService.selectBestServer();
     }
 
-    // 创建容器记录 - 使用临时唯一ID，避免唯一约束冲突
     const tempContainerId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const container = await this.prisma.container.create({
       data: {
@@ -54,35 +50,47 @@ export class ContainerService {
     });
 
     try {
-      // 在远程服务器上创建 Docker 容器
-      const dockerContainer = await this.serverService.executeDockerCommand(
-        serverId,
-        'docker:create',
-        {
-          image: lab.dockerImage,
-          name: `spark-lab-${container.id}`,
-          cpuLimit: lab.cpuLimit,
-          memoryLimit: lab.memoryLimit,
-        },
-      );
+      const portMappings = lab.portMappings ? JSON.parse(lab.portMappings) : [];
+      const environmentVars = lab.environmentVars ? JSON.parse(lab.environmentVars) : [];
+      const volumeMounts = lab.volumeMounts ? JSON.parse(lab.volumeMounts) : [];
 
-      // 更新容器信息
+      const containerOptions = {
+        image: lab.dockerImage,
+        name: `lab-${container.id}`,
+        cpuLimit: lab.cpuLimit,
+        memoryLimit: lab.memoryLimit,
+        startupCommand: lab.startupCommand,
+        portMappings,
+        environmentVars,
+        volumeMounts,
+        restartPolicy: lab.restartPolicy as any,
+      };
+
+      let dockerContainer;
+
+      if (serverId) {
+        dockerContainer = await this.serverService.executeDockerCommand(
+          serverId,
+          'docker:create',
+          containerOptions,
+        );
+      } else {
+        dockerContainer = await this.dockerService.createContainer(containerOptions);
+      }
+
       const updated = await this.prisma.container.update({
         where: { id: container.id },
         data: {
           containerId: dockerContainer.id,
           status: 'running',
           startedAt: new Date(),
-          sshPort: dockerContainer.sshPort,
-          vncPort: dockerContainer.vncPort,
-          idePort: dockerContainer.idePort,
+          portMappings: JSON.stringify(dockerContainer.portMappings || []),
           autoStopAt: new Date(Date.now() + parseInt(process.env.AUTO_STOP_TIMEOUT || '1800000')),
         },
       });
 
       return updated;
     } catch (error) {
-      // 创建失败，更新状态
       await this.prisma.container.update({
         where: { id: container.id },
         data: { status: 'error' },
@@ -100,6 +108,7 @@ export class ContainerService {
             id: true,
             title: true,
             dockerImage: true,
+            shellCommand: true,
           },
         },
       },
@@ -107,7 +116,7 @@ export class ContainerService {
     });
   }
 
-  async findOne(id: string, userId: string) {
+  async findOne(id: string, userId: string, userRole?: string) {
     const container = await this.prisma.container.findUnique({
       where: { id },
       include: {
@@ -119,15 +128,15 @@ export class ContainerService {
       throw new NotFoundException('Container not found');
     }
 
-    if (container.userId !== userId) {
+    if (userRole !== 'ADMIN' && container.userId !== userId) {
       throw new ForbiddenException('Access denied');
     }
 
     return container;
   }
 
-  async start(id: string, userId: string) {
-    const container = await this.findOne(id, userId);
+  async start(id: string, userId: string, userRole?: string) {
+    const container = await this.findOne(id, userId, userRole);
 
     if (container.status === 'running') {
       return container;
@@ -154,8 +163,8 @@ export class ContainerService {
     });
   }
 
-  async stop(id: string, userId: string) {
-    const container = await this.findOne(id, userId);
+  async stop(id: string, userId: string, userRole?: string) {
+    const container = await this.findOne(id, userId, userRole);
 
     if (container.serverId) {
       await this.serverService.executeDockerCommand(
@@ -176,8 +185,8 @@ export class ContainerService {
     });
   }
 
-  async remove(id: string, userId: string) {
-    const container = await this.findOne(id, userId);
+  async remove(id: string, userId: string, userRole?: string) {
+    const container = await this.findOne(id, userId, userRole);
 
     try {
       if (container.serverId) {
@@ -190,7 +199,6 @@ export class ContainerService {
         await this.dockerService.removeContainer(container.containerId);
       }
     } catch (error) {
-      // 容器可能已经不存在，继续删除记录
     }
 
     await this.prisma.container.delete({
@@ -200,8 +208,8 @@ export class ContainerService {
     return { message: 'Container removed successfully' };
   }
 
-  async updateHeartbeat(id: string, userId: string) {
-    const container = await this.findOne(id, userId);
+  async updateHeartbeat(id: string, userId: string, userRole?: string) {
+    const container = await this.findOne(id, userId, userRole);
 
     return this.prisma.container.update({
       where: { id },
@@ -212,8 +220,8 @@ export class ContainerService {
     });
   }
 
-  async execCommand(id: string, userId: string, command: string) {
-    const container = await this.findOne(id, userId);
+  async execCommand(id: string, userId: string, command: string, userRole?: string) {
+    const container = await this.findOne(id, userId, userRole);
 
     if (container.status !== 'running') {
       throw new BadRequestException('Container is not running');
@@ -228,6 +236,61 @@ export class ContainerService {
       return { output: result.output };
     } else {
       const result = await this.dockerService.execCommand(container.containerId, command);
+      return result;
+    }
+  }
+
+  async execCreate(id: string, userId: string, command: string, options?: any, userRole?: string) {
+    const container = await this.findOne(id, userId, userRole);
+
+    if (container.status !== 'running') {
+      throw new BadRequestException('Container is not running');
+    }
+
+    if (container.serverId) {
+      const result = await this.serverService.executeDockerCommand(
+        container.serverId,
+        'docker:exec_create',
+        {
+          containerId: container.containerId,
+          command,
+          tty: options?.tty ?? true,
+          stdin: options?.stdin ?? true,
+          stdout: options?.stdout ?? true,
+          stderr: options?.stderr ?? true,
+        },
+      );
+      return { execId: result.data.execId };
+    } else {
+      const result = await this.dockerService.execCreate(container.containerId, command, options);
+      return result;
+    }
+  }
+
+  async execStart(id: string, userId: string, execId: string, options?: any, userRole?: string) {
+    const container = await this.findOne(id, userId, userRole);
+
+    if (container.status !== 'running') {
+      throw new BadRequestException('Container is not running');
+    }
+
+    if (container.serverId) {
+      const result = await this.serverService.executeDockerCommand(
+        container.serverId,
+        'docker:exec_start',
+        {
+          execId,
+          stream: options?.stream ?? false,
+          detach: options?.detach ?? false,
+          tty: options?.tty ?? true,
+        },
+      );
+      if (result.data.streaming) {
+        return { streaming: true };
+      }
+      return { output: result.data.output };
+    } else {
+      const result = await this.dockerService.execStart(container.containerId, execId, options);
       return result;
     }
   }

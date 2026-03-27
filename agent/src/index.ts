@@ -3,6 +3,10 @@ import Docker from 'dockerode';
 import si from 'systeminformation';
 import * as fs from 'fs';
 import * as path from 'path';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 interface AgentConfig {
   serverUrl: string;
@@ -66,6 +70,7 @@ class SparkLabAgent {
 
     // 接收指令
     this.socket.on('docker:create', (data, callback) => this.handleCreateContainer(data, callback));
+    this.socket.on('docker:run', (data, callback) => this.handleRunContainer(data, callback));
     this.socket.on('docker:start', (data, callback) => this.handleStartContainer(data, callback));
     this.socket.on('docker:stop', (data, callback) => this.handleStopContainer(data, callback));
     this.socket.on('docker:remove', (data, callback) => this.handleRemoveContainer(data, callback));
@@ -109,6 +114,57 @@ class SparkLabAgent {
   }
 
   // Docker 操作处理
+  private async handleRunContainer(data: any, callback: Function) {
+    try {
+      console.log(`[Agent] 执行 docker run 命令: ${data.command}`);
+      
+      // 执行完整的 docker run 命令
+      const { stdout, stderr } = await execAsync(data.command);
+      
+      if (stderr) {
+        console.error('[Agent] docker run 警告:', stderr);
+      }
+      
+      console.log('[Agent] docker run 输出:', stdout);
+      
+      // 从命令中提取容器名称（假设是 --name 参数）
+      const containerNameMatch = data.command.match(/--name\s+(\S+)/);
+      let containerName = containerNameMatch ? containerNameMatch[1] : null;
+      
+      // 如果找不到名称，尝试通过查找最近创建的容器
+      if (!containerName) {
+        const containers = await this.docker.listContainers({ all: true });
+        if (containers.length > 0) {
+          // 按创建时间排序，取最新的
+          containers.sort((a, b) => b.Created - a.Created);
+          containerName = containers[0].Names?.[0]?.replace(/^\//, '') || null;
+        }
+      }
+      
+      if (!containerName) {
+        throw new Error('无法找到创建的容器');
+      }
+      
+      // 获取容器信息
+      const container = this.docker.getContainer(containerName);
+      const inspect = await container.inspect();
+      const ports = inspect.NetworkSettings.Ports;
+      
+      callback({
+        success: true,
+        data: {
+          id: inspect.Id,
+          sshPort: ports['22/tcp']?.[0]?.HostPort ? parseInt(ports['22/tcp'][0].HostPort) : null,
+          vncPort: ports['5900/tcp']?.[0]?.HostPort ? parseInt(ports['5900/tcp'][0].HostPort) : null,
+          idePort: ports['8080/tcp']?.[0]?.HostPort ? parseInt(ports['8080/tcp'][0].HostPort) : null,
+        },
+      });
+    } catch (error: any) {
+      console.error('[Agent] 执行 docker run 失败:', error.message);
+      callback({ success: false, error: error.message });
+    }
+  }
+
   private async handleCreateContainer(data: any, callback: Function) {
     try {
       console.log(`[Agent] 创建容器: ${data.name}`);

@@ -202,6 +202,38 @@ export default function AdminContainersPage() {
     }
   };
 
+  const handleLabContainerStart = async (id: string) => {
+    try {
+      await api.post(`/containers/${id}/start`);
+      loadData();
+      loadAllServerContainers();
+    } catch (error: any) {
+      alert(`启动容器失败: ${error.response?.data?.message || error.message}`);
+    }
+  };
+
+  const handleLabContainerStop = async (id: string) => {
+    if (!confirm('确定要停止此容器吗？')) return;
+    try {
+      await api.post(`/containers/${id}/stop`);
+      loadData();
+      loadAllServerContainers();
+    } catch (error: any) {
+      alert(`停止容器失败: ${error.response?.data?.message || error.message}`);
+    }
+  };
+
+  const handleLabContainerRemove = async (id: string) => {
+    if (!confirm('确定要删除此容器吗？此操作不可恢复！')) return;
+    try {
+      await api.delete(`/containers/${id}`);
+      loadData();
+      loadAllServerContainers();
+    } catch (error: any) {
+      alert(`删除容器失败: ${error.response?.data?.message || error.message}`);
+    }
+  };
+
   const handleSystemContainerStart = async (serverId: string, containerId: string) => {
     try {
       await api.post(`/servers/${serverId}/containers/${containerId}/start`);
@@ -402,14 +434,33 @@ export default function AdminContainersPage() {
                           </span>
                         </td>
                         <td className="p-3">
-                          {c.status === 'running' && (
+                          <div className="flex items-center gap-1.5">
+                            {c.status === 'running' ? (
+                              <button
+                                onClick={() => handleLabContainerStop(c.id)}
+                                className="text-yellow-400 hover:text-yellow-300 transition-colors text-xs whitespace-nowrap"
+                                title="停止容器"
+                              >
+                                停止
+                              </button>
+                            ) : c.status === 'stopped' || c.status === 'error' ? (
+                              <button
+                                onClick={() => handleLabContainerStart(c.id)}
+                                className="text-green-400 hover:text-green-300 transition-colors text-xs whitespace-nowrap"
+                                title="启动容器"
+                              >
+                                启动
+                              </button>
+                            ) : null}
+                            <span className="text-on-surface-variant/30">|</span>
                             <button
-                              onClick={() => handleForceStop(c.id)}
-                              className="text-red-400 hover:text-red-300 transition-colors text-sm whitespace-nowrap"
+                              onClick={() => handleLabContainerRemove(c.id)}
+                              className="text-red-400 hover:text-red-300 transition-colors text-xs whitespace-nowrap"
+                              title="删除容器"
                             >
-                              停止
+                              删除
                             </button>
-                          )}
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -469,14 +520,29 @@ export default function AdminContainersPage() {
                       </div>
                     </div>
 
-                    {c.status === 'running' && (
+                    <div className="flex gap-2">
+                      {c.status === 'running' ? (
+                        <button
+                          onClick={() => handleLabContainerStop(c.id)}
+                          className="flex-1 py-2 bg-yellow-500/10 text-yellow-400 rounded-lg hover:bg-yellow-500/20 transition-colors text-sm"
+                        >
+                          停止
+                        </button>
+                      ) : c.status === 'stopped' || c.status === 'error' ? (
+                        <button
+                          onClick={() => handleLabContainerStart(c.id)}
+                          className="flex-1 py-2 bg-green-500/10 text-green-400 rounded-lg hover:bg-green-500/20 transition-colors text-sm"
+                        >
+                          启动
+                        </button>
+                      ) : null}
                       <button
-                        onClick={() => handleForceStop(c.id)}
-                        className="w-full py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors text-sm"
+                        onClick={() => handleLabContainerRemove(c.id)}
+                        className="flex-1 py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors text-sm"
                       >
-                        强制停止
+                        删除
                       </button>
-                    )}
+                    </div>
                   </div>
                 ))
               )}
