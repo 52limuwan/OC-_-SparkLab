@@ -79,4 +79,12 @@ export class AdminController {
   async getStats() {
     return this.adminService.getStats();
   }
+
+  // ==================== 端口管理 ====================
+  @Get('servers/:serverId/available-port')
+  async getAvailablePort(
+    @Param('serverId') serverId: string,
+  ) {
+    return this.adminService.getAvailablePort(serverId);
+  }
 }

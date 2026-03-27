@@ -23,10 +23,10 @@ export default function LabPage() {
 
   // 当容器启动时，自动切换到 SSH 标签页
   useEffect(() => {
-    if (container && lab?.enableSsh !== false) {
+    if (container) {
       setActiveTab('ssh');
     }
-  }, [container, lab]);
+  }, [container]);
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const [command, setCommand] = useState('');
   const [webUrl, setWebUrl] = useState('');
@@ -55,7 +55,16 @@ export default function LabPage() {
   // 当容器启动时，设置默认 Web URL
   useEffect(() => {
     if (container) {
-      setWebUrl(`http://localhost:${container.port || '8080'}`);
+      let defaultPort = '8080';
+      try {
+        const portMappings = container.portMappings ? JSON.parse(container.portMappings) : [];
+        if (portMappings.length > 0) {
+          defaultPort = portMappings[0].hostPort || defaultPort;
+        }
+      } catch (e) {
+        console.error('Failed to parse port mappings:', e);
+      }
+      setWebUrl(`http://localhost:${defaultPort}`);
       setWebLoadError(false);
     } else {
       setWebUrl('');
@@ -223,7 +232,16 @@ export default function LabPage() {
   const handleSubmit = async () => {
     try {
       await labAPI.submit(labId);
-      alert('实验已提交！');
+      
+      // 清理终端和容器状态
+      if (xtermRef.current) {
+        xtermRef.current.dispose();
+        xtermRef.current = null;
+        fitAddonRef.current = null;
+      }
+      setContainer(null);
+      
+      alert('实验已提交！容器已自动销毁。');
     } catch (error) {
       console.error('Failed to submit lab:', error);
       alert('提交失败，请重试');
@@ -355,64 +373,37 @@ export default function LabPage() {
           {/* 连接方式选择 */}
           <div className="flex gap-2">
             <button
-              onClick={() => lab.enableSsh !== false && setActiveTab('ssh')}
-              disabled={lab.enableSsh === false}
-              title={lab.enableSsh === false ? '本实验无需此协议' : ''}
-              className={`flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm relative ${
+              onClick={() => setActiveTab('ssh')}
+              className={`flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm ${
                 activeTab === 'ssh'
                   ? 'bg-primary text-on-primary'
-                  : lab.enableSsh === false
-                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                   : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'
               }`}
             >
               <Terminal className="w-4 h-4" />
               SSH
-              {lab.enableSsh === false && (
-                <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-50">
-                  本实验无需此协议
-                </div>
-              )}
             </button>
             <button
-              onClick={() => lab.enableVnc && setActiveTab('vnc')}
-              disabled={!lab.enableVnc}
-              title={!lab.enableVnc ? '本实验无需此协议' : ''}
-              className={`flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm relative ${
+              onClick={() => setActiveTab('vnc')}
+              className={`flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm ${
                 activeTab === 'vnc'
                   ? 'bg-primary text-on-primary'
-                  : !lab.enableVnc
-                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                   : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'
               }`}
             >
               <Monitor className="w-4 h-4" />
               VNC
-              {!lab.enableVnc && (
-                <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-50">
-                  本实验无需此协议
-                </div>
-              )}
             </button>
             <button
-              onClick={() => lab.enableIde && setActiveTab('rdp')}
-              disabled={!lab.enableIde}
-              title={!lab.enableIde ? '本实验无需此协议' : ''}
-              className={`flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm relative ${
+              onClick={() => setActiveTab('rdp')}
+              className={`flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-sm ${
                 activeTab === 'rdp'
                   ? 'bg-primary text-on-primary'
-                  : !lab.enableIde
-                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                   : 'bg-surface-container text-on-surface-variant hover:bg-surface-bright'
               }`}
             >
               <Laptop className="w-4 h-4" />
               IDE
-              {!lab.enableIde && (
-                <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-50">
-                  本实验无需此协议
-                </div>
-              )}
             </button>
             <button
               onClick={() => setActiveTab('web')}

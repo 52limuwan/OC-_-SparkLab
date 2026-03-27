@@ -24,7 +24,6 @@ interface PortMapping {
   containerPort: number;
   hostPort?: number;
   protocol: 'tcp' | 'udp';
-  random: boolean;
 }
 
 interface EnvironmentVar {
@@ -123,7 +122,12 @@ export default function AdminCourseLabsPage() {
     if (lab.serverId) {
       setSelectedServer(lab.serverId);
     }
-    setPortMappings(lab.portMappings ? JSON.parse(lab.portMappings) : []);
+    const mappings = lab.portMappings ? JSON.parse(lab.portMappings) : [];
+    const cleanedMappings = mappings.map((pm: any) => {
+      const { random, ...rest } = pm;
+      return rest;
+    });
+    setPortMappings(cleanedMappings);
     setEnvironmentVars(lab.environmentVars ? JSON.parse(lab.environmentVars) : []);
     setVolumeMounts(lab.volumeMounts ? JSON.parse(lab.volumeMounts) : []);
   };
@@ -153,7 +157,6 @@ export default function AdminCourseLabsPage() {
       dockerImage: formData.get('dockerImage') as string,
       cpuLimit: parseFloat(formData.get('cpuLimit') as string),
       memoryLimit: parseInt(formData.get('memoryLimit') as string),
-      startupCommand: formData.get('startupCommand') as string || null,
       shellCommand: formData.get('shellCommand') as string || '/bin/bash',
       restartPolicy: formData.get('restartPolicy') as string,
       portMappings,
@@ -194,7 +197,6 @@ export default function AdminCourseLabsPage() {
       containerPort: 80,
       hostPort: 8080,
       protocol: 'tcp',
-      random: false
     }]);
   };
 
@@ -206,6 +208,22 @@ export default function AdminCourseLabsPage() {
     const updated = [...portMappings];
     updated[index] = { ...updated[index], [field]: value };
     setPortMappings(updated);
+  };
+
+  const getRandomPort = async (index: number) => {
+    if (!selectedServer) {
+      alert('请先选择一个服务器');
+      return;
+    }
+
+    try {
+      const response = await adminAPI.getAvailablePort(selectedServer);
+      const port = response.data.port;
+      updatePortMapping(index, 'hostPort', port);
+    } catch (error) {
+      console.error('Failed to get available port:', error);
+      alert('获取可用端口失败，请重试');
+    }
   };
 
   const addEnvironmentVar = () => {
@@ -519,16 +537,6 @@ export default function AdminCourseLabsPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm text-on-surface-variant mb-2">容器启动命令</label>
-                      <input
-                        name="startupCommand"
-                        defaultValue={editingLab.startupCommand || ''}
-                        placeholder="/usr/sbin/sshd -D"
-                        className="w-full bg-surface-container text-on-surface px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-
-                    <div>
                       <label className="block text-sm text-on-surface-variant mb-2">进入容器的 Bash 命令</label>
                       <input
                         name="shellCommand"
@@ -590,9 +598,8 @@ export default function AdminCourseLabsPage() {
                             <input
                               type="number"
                               value={pm.hostPort || ''}
-                              disabled={pm.random}
                               onChange={(e) => updatePortMapping(index, 'hostPort', parseInt(e.target.value))}
-                              className="w-full bg-surface-bright text-on-surface px-2 py-1 rounded text-sm disabled:opacity-50"
+                              className="w-full bg-surface-bright text-on-surface px-2 py-1 rounded text-sm"
                             />
                           </div>
                           <div className="w-24">
@@ -606,16 +613,13 @@ export default function AdminCourseLabsPage() {
                               <option value="udp">UDP</option>
                             </select>
                           </div>
-                          <div className="w-24 flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={pm.random}
-                              onChange={(e) => updatePortMapping(index, 'random', e.target.checked)}
-                              className="w-4 h-4 text-primary"
-                              id={`random-${index}`}
-                            />
-                            <label htmlFor={`random-${index}`} className="text-xs text-on-surface-variant">随机</label>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => getRandomPort(index)}
+                            className="bg-primary/20 text-primary px-3 py-1 rounded text-xs hover:bg-primary/30 transition-all"
+                          >
+                            随机端口
+                          </button>
                           <button
                             type="button"
                             onClick={() => removePortMapping(index)}

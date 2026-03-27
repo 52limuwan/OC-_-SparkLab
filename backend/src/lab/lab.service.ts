@@ -1,9 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { DockerService } from '../container/docker.service';
+import { ServerService } from '../server/server.service';
 
 @Injectable()
 export class LabService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private dockerService: DockerService,
+    private serverService: ServerService,
+  ) {}
 
   async findOne(id: string, userId?: string) {
     const lab = await this.prisma.lab.findUnique({
@@ -54,6 +60,43 @@ export class LabService {
     });
   }
 
+  private async removeContainer(containerId: string, userId: string, userRole?: string) {
+    const container = await this.prisma.container.findUnique({
+      where: { id: containerId },
+      include: {
+        lab: true,
+      },
+    });
+
+    if (!container) {
+      throw new NotFoundException('Container not found');
+    }
+
+    if (userRole !== 'ADMIN' && container.userId !== userId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    try {
+      if (container.serverId) {
+        await this.serverService.executeDockerCommand(
+          container.serverId,
+          'docker:remove',
+          { containerId: container.containerId },
+        );
+      } else {
+        await this.dockerService.removeContainer(container.containerId);
+      }
+    } catch (error) {
+      console.error('Failed to remove docker container:', error);
+    }
+
+    await this.prisma.container.delete({
+      where: { id: containerId },
+    });
+
+    return { message: 'Container removed successfully' };
+  }
+
   async submit(labId: string, userId: string, code?: string) {
     const lab = await this.prisma.lab.findUnique({
       where: { id: labId },
@@ -72,6 +115,23 @@ export class LabService {
         maxScore: lab.points,
       },
     });
+
+    // 查找并删除用户为此实验创建的容器
+    const userContainers = await this.prisma.container.findMany({
+      where: {
+        userId,
+        labId,
+        status: { in: ['running', 'stopped'] },
+      },
+    });
+
+    for (const container of userContainers) {
+      try {
+        await this.removeContainer(container.id, userId, 'STUDENT');
+      } catch (error) {
+        console.error(`Failed to remove container ${container.id}:`, error);
+      }
+    }
 
     // 如果有自动判题脚本，执行判题
     if (lab.judgeType === 'auto' && lab.judgeScript) {

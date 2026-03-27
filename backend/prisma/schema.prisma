@@ -88,7 +88,6 @@ model Lab {
   memoryLimit Int      @default(512) // MB
   
   // 启动与执行配置
-  startupCommand   String?  // 容器启动命令 (CMD)
   shellCommand     String   @default("/bin/bash")  // 进入容器的 bash 命令
   
   // 端口映射配置 (JSON 格式存储)

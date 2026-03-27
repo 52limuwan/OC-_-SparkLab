@@ -24,7 +24,6 @@ interface CreateContainerOptions {
   name: string;
   cpuLimit: number;
   memoryLimit: number;
-  startupCommand?: string;
   portMappings?: PortMapping[];
   environmentVars?: EnvironmentVar[];
   volumeMounts?: VolumeMount[];
@@ -113,9 +112,7 @@ export class DockerService {
         );
       }
 
-      if (options.startupCommand) {
-        containerConfig.Cmd = options.startupCommand.split(' ');
-      }
+
 
       const container = await this.docker.createContainer(containerConfig);
       await container.start();

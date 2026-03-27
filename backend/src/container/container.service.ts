@@ -24,12 +24,17 @@ export class ContainerService {
       throw new BadRequestException(`Maximum ${maxContainers} containers allowed per user`);
     }
 
-    const lab = await this.prisma.lab.findUnique({
-      where: { id: labId },
-    });
+    const [lab, user] = await Promise.all([
+      this.prisma.lab.findUnique({ where: { id: labId } }),
+      this.prisma.user.findUnique({ where: { id: userId } }),
+    ]);
 
     if (!lab) {
       throw new NotFoundException('Lab not found');
+    }
+
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
 
     if (!serverId) {
@@ -54,12 +59,15 @@ export class ContainerService {
       const environmentVars = lab.environmentVars ? JSON.parse(lab.environmentVars) : [];
       const volumeMounts = lab.volumeMounts ? JSON.parse(lab.volumeMounts) : [];
 
+      const randomSuffix = Math.random().toString(36).substr(2, 6);
+      const safeUsername = user.username.replace(/[^a-zA-Z0-9_-]/g, '-');
+      const containerName = `${safeUsername}-${labId.slice(0, 8)}-${randomSuffix}`;
+
       const containerOptions = {
         image: lab.dockerImage,
-        name: `lab-${container.id}`,
+        name: containerName,
         cpuLimit: lab.cpuLimit,
         memoryLimit: lab.memoryLimit,
-        startupCommand: lab.startupCommand,
         portMappings,
         environmentVars,
         volumeMounts,
@@ -142,22 +150,61 @@ export class ContainerService {
       return container;
     }
 
-    if (container.serverId) {
-      await this.serverService.executeDockerCommand(
-        container.serverId,
-        'docker:start',
-        { containerId: container.containerId },
-      );
+    const lab = await this.prisma.lab.findUnique({
+      where: { id: container.labId },
+    });
+
+    if (!lab) {
+      throw new NotFoundException('Lab not found');
+    }
+
+    let dockerContainer;
+
+    if (!container.containerId || container.containerId === '') {
+      const portMappings = lab.portMappings ? JSON.parse(lab.portMappings) : [];
+      const environmentVars = lab.environmentVars ? JSON.parse(lab.environmentVars) : [];
+      const volumeMounts = lab.volumeMounts ? JSON.parse(lab.volumeMounts) : [];
+
+      const containerOptions = {
+        image: lab.dockerImage,
+        name: `lab-${container.id}`,
+        cpuLimit: lab.cpuLimit,
+        memoryLimit: lab.memoryLimit,
+        portMappings,
+        environmentVars,
+        volumeMounts,
+        restartPolicy: lab.restartPolicy as any,
+      };
+
+      if (container.serverId) {
+        dockerContainer = await this.serverService.executeDockerCommand(
+          container.serverId,
+          'docker:create',
+          containerOptions,
+        );
+      } else {
+        dockerContainer = await this.dockerService.createContainer(containerOptions);
+      }
     } else {
-      await this.dockerService.startContainer(container.containerId);
+      if (container.serverId) {
+        await this.serverService.executeDockerCommand(
+          container.serverId,
+          'docker:start',
+          { containerId: container.containerId },
+        );
+      } else {
+        await this.dockerService.startContainer(container.containerId);
+      }
     }
 
     return this.prisma.container.update({
       where: { id },
       data: {
+        containerId: dockerContainer?.id || container.containerId,
         status: 'running',
         startedAt: new Date(),
         lastActiveAt: new Date(),
+        portMappings: dockerContainer?.portMappings ? JSON.stringify(dockerContainer.portMappings) : container.portMappings,
         autoStopAt: new Date(Date.now() + parseInt(process.env.AUTO_STOP_TIMEOUT || '1800000')),
       },
     });

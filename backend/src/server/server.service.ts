@@ -458,6 +458,54 @@ export class ServerService {
     }
   }
 
+  // 获取服务器上已使用的端口
+  async getUsedPorts(serverId: string): Promise<number[]> {
+    const containers = await this.prisma.container.findMany({
+      where: {
+        serverId,
+        status: { in: ['creating', 'running', 'stopped'] },
+      },
+      select: { portMappings: true },
+    });
+
+    const usedPorts: number[] = [];
+    for (const container of containers) {
+      if (container.portMappings) {
+        try {
+          const mappings = JSON.parse(container.portMappings);
+          for (const mapping of mappings) {
+            if (mapping.hostPort) {
+              usedPorts.push(mapping.hostPort);
+            }
+          }
+        } catch (e) {
+          console.error('Failed to parse port mappings:', e);
+        }
+      }
+    }
+
+    return [...new Set(usedPorts)];
+  }
+
+  // 获取随机可用端口
+  async getRandomAvailablePort(serverId: string, portRange: { min: number; max: number } = { min: 10000, max: 50000 }): Promise<number> {
+    const usedPorts = await this.getUsedPorts(serverId);
+    const availablePorts: number[] = [];
+
+    for (let port = portRange.min; port <= portRange.max; port++) {
+      if (!usedPorts.includes(port)) {
+        availablePorts.push(port);
+      }
+    }
+
+    if (availablePorts.length === 0) {
+      throw new BadRequestException('No available ports in range');
+    }
+
+    const randomIndex = Math.floor(Math.random() * availablePorts.length);
+    return availablePorts[randomIndex];
+  }
+
   private generateToken(): string {
     return Array.from({ length: 32 }, () =>
       Math.floor(Math.random() * 16).toString(16)

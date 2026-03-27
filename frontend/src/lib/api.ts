@@ -170,4 +170,7 @@ export const adminAPI = {
   
   deleteLab: (id: string) =>
     api.delete(`/admin/labs/${id}`),
+
+  getAvailablePort: (serverId: string) =>
+    api.get(`/admin/servers/${serverId}/available-port`),
 };

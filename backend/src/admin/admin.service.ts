@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ServerService } from '../server/server.service';
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private serverService: ServerService,
+  ) {}
 
   // ==================== 用户管理 ====================
   async getAllUsers() {
@@ -119,7 +123,6 @@ export class AdminService {
           dockerImage: data.dockerImage || 'ubuntu:22.04',
           cpuLimit: data.cpuLimit || 1.0,
           memoryLimit: data.memoryLimit || 512,
-          startupCommand: data.startupCommand || null,
           shellCommand: data.shellCommand || '/bin/bash',
           portMappings: data.portMappings ? JSON.stringify(data.portMappings) : null,
           environmentVars: data.environmentVars ? JSON.stringify(data.environmentVars) : null,
@@ -156,7 +159,6 @@ export class AdminService {
           dockerImage: data.dockerImage,
           cpuLimit: data.cpuLimit,
           memoryLimit: data.memoryLimit,
-          startupCommand: data.startupCommand !== undefined ? data.startupCommand : undefined,
           shellCommand: data.shellCommand !== undefined ? data.shellCommand : undefined,
           portMappings: data.portMappings !== undefined ? (data.portMappings ? JSON.stringify(data.portMappings) : null) : undefined,
           environmentVars: data.environmentVars !== undefined ? (data.environmentVars ? JSON.stringify(data.environmentVars) : null) : undefined,
@@ -321,5 +323,11 @@ export class AdminService {
       courseStats,
       containersByStatus,
     };
+  }
+
+  // ==================== 端口管理 ====================
+  async getAvailablePort(serverId: string) {
+    const port = await this.serverService.getRandomAvailablePort(serverId);
+    return { port };
   }
 }
