@@ -215,7 +215,161 @@ export class ServerService {
     }
   }
 
-  // 启动容器
+  // 在远程服务器上创建容器
+  async createContainerOnServer(
+    serverId: string,
+    options: any,
+  ): Promise<{ id: string; portMappings: any[] }> {
+    const server = await this.findOne(serverId);
+    
+    this.logger.log(`在服务器 ${serverId} 上创建容器: ${options.name}`);
+
+    try {
+      const docker = new Docker({
+        host: server.host,
+        port: 2375,
+      });
+
+      await this.pullImageOnServer(docker, options.image);
+
+      const containerConfig: any = {
+        Image: options.image,
+        name: options.name,
+        Tty: true,
+        OpenStdin: true,
+        HostConfig: {
+          Memory: options.memoryLimit * 1024 * 1024,
+          NanoCpus: Math.floor(options.cpuLimit * 1000000000),
+          AutoRemove: false,
+          RestartPolicy: {
+            Name: options.restartPolicy || 'unless-stopped',
+          },
+        },
+        ExposedPorts: {},
+      };
+
+      const portBindings: any = {};
+      const actualPortMappings: Array<{
+        containerPort: number;
+        hostPort: number;
+        protocol: 'tcp' | 'udp';
+      }> = [];
+
+      if (options.portMappings && options.portMappings.length > 0) {
+        for (const pm of options.portMappings) {
+          const portKey = `${pm.containerPort}/${pm.protocol}`;
+          containerConfig.ExposedPorts![portKey] = {};
+          
+          if (pm.random) {
+            portBindings[portKey] = [{ HostPort: '' }];
+          } else {
+            portBindings[portKey] = [{ HostPort: String(pm.hostPort) }];
+          }
+        }
+      }
+
+      containerConfig.HostConfig!.PortBindings = portBindings;
+
+      if (options.environmentVars && options.environmentVars.length > 0) {
+        containerConfig.Env = options.environmentVars.map(
+          (ev: any) => `${ev.name}=${ev.value}`
+        );
+      }
+
+      if (options.volumeMounts && options.volumeMounts.length > 0) {
+        containerConfig.HostConfig!.Binds = options.volumeMounts.map(
+          (vm: any) => `${vm.hostPath}:${vm.containerPath}:${vm.mode}`
+        );
+      }
+
+      const container = await docker.createContainer(containerConfig);
+      await container.start();
+
+      const inspect = await container.inspect();
+      const ports = inspect.NetworkSettings.Ports;
+
+      if (options.portMappings) {
+        for (const pm of options.portMappings) {
+          const portKey = `${pm.containerPort}/${pm.protocol}`;
+          const hostPort = ports[portKey]?.[0]?.HostPort;
+          if (hostPort) {
+            actualPortMappings.push({
+              containerPort: pm.containerPort,
+              hostPort: parseInt(hostPort),
+              protocol: pm.protocol,
+            });
+          }
+        }
+      }
+
+      return {
+        id: container.id,
+        portMappings: actualPortMappings,
+      };
+    } catch (error) {
+      this.logger.error(`在服务器 ${serverId} 上创建容器失败: ${error.message}`);
+      throw error;
+    }
+  }
+
+  // 在远程服务器上拉取镜像
+  private async pullImageOnServer(docker: any, image: string) {
+    try {
+      this.logger.log(`拉取镜像: ${image}`);
+      await docker.pull(image);
+      this.logger.log(`镜像拉取完成: ${image}`);
+    } catch (error) {
+      this.logger.warn(`拉取镜像 ${image} 失败，尝试使用本地镜像: ${error.message}`);
+    }
+  }
+
+  // 在远程服务器上启动容器
+  async startContainerOnServer(serverId: string, containerId: string) {
+    const server = await this.findOne(serverId);
+    this.logger.log(`在服务器 ${serverId} 上启动容器: ${containerId}`);
+    
+    const docker = new Docker({
+      host: server.host,
+      port: 2375,
+    });
+    
+    const container = docker.getContainer(containerId);
+    await container.start();
+  }
+
+  // 在远程服务器上停止容器
+  async stopContainerOnServer(serverId: string, containerId: string) {
+    const server = await this.findOne(serverId);
+    this.logger.log(`在服务器 ${serverId} 上停止容器: ${containerId}`);
+    
+    const docker = new Docker({
+      host: server.host,
+      port: 2375,
+    });
+    
+    const container = docker.getContainer(containerId);
+    await container.stop();
+  }
+
+  // 在远程服务器上删除容器
+  async removeContainerOnServer(serverId: string, containerId: string) {
+    const server = await this.findOne(serverId);
+    this.logger.log(`在服务器 ${serverId} 上删除容器: ${containerId}`);
+    
+    const docker = new Docker({
+      host: server.host,
+      port: 2375,
+    });
+    
+    const container = docker.getContainer(containerId);
+    try {
+      await container.stop();
+    } catch (e) {
+    }
+    await container.remove({ force: true });
+  }
+
+  // 启动容器 (保留旧的Agent方法，但不再使用)
   async startContainer(serverId: string, containerId: string) {
     const server = await this.findOne(serverId);
     

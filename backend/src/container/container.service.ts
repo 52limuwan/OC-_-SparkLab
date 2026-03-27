@@ -38,7 +38,7 @@ export class ContainerService {
     }
 
     if (!serverId) {
-      serverId = lab.serverId || await this.serverService.selectBestServer();
+      serverId = lab.serverId;
     }
 
     const tempContainerId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -77,9 +77,8 @@ export class ContainerService {
       let dockerContainer;
 
       if (serverId) {
-        dockerContainer = await this.serverService.executeDockerCommand(
+        dockerContainer = await this.serverService.createContainerOnServer(
           serverId,
-          'docker:create',
           containerOptions,
         );
       } else {
@@ -177,9 +176,8 @@ export class ContainerService {
       };
 
       if (container.serverId) {
-        dockerContainer = await this.serverService.executeDockerCommand(
+        dockerContainer = await this.serverService.createContainerOnServer(
           container.serverId,
-          'docker:create',
           containerOptions,
         );
       } else {
@@ -187,10 +185,9 @@ export class ContainerService {
       }
     } else {
       if (container.serverId) {
-        await this.serverService.executeDockerCommand(
+        await this.serverService.startContainerOnServer(
           container.serverId,
-          'docker:start',
-          { containerId: container.containerId },
+          container.containerId,
         );
       } else {
         await this.dockerService.startContainer(container.containerId);
@@ -214,10 +211,9 @@ export class ContainerService {
     const container = await this.findOne(id, userId, userRole);
 
     if (container.serverId) {
-      await this.serverService.executeDockerCommand(
+      await this.serverService.stopContainerOnServer(
         container.serverId,
-        'docker:stop',
-        { containerId: container.containerId },
+        container.containerId,
       );
     } else {
       await this.dockerService.stopContainer(container.containerId);
@@ -237,10 +233,9 @@ export class ContainerService {
 
     try {
       if (container.serverId) {
-        await this.serverService.executeDockerCommand(
+        await this.serverService.removeContainerOnServer(
           container.serverId,
-          'docker:remove',
-          { containerId: container.containerId },
+          container.containerId,
         );
       } else {
         await this.dockerService.removeContainer(container.containerId);

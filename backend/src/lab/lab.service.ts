@@ -78,10 +78,9 @@ export class LabService {
 
     try {
       if (container.serverId) {
-        await this.serverService.executeDockerCommand(
+        await this.serverService.removeContainerOnServer(
           container.serverId,
-          'docker:remove',
-          { containerId: container.containerId },
+          container.containerId,
         );
       } else {
         await this.dockerService.removeContainer(container.containerId);

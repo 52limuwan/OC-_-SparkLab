@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { DockerService } from './docker.service';
+import { ServerService } from '../server/server.service';
 
 @Injectable()
 export class CleanupService {
@@ -10,6 +11,7 @@ export class CleanupService {
   constructor(
     private prisma: PrismaService,
     private dockerService: DockerService,
+    private serverService: ServerService,
   ) {}
 
   // 每 5 分钟检查一次需要自动停止的容器
@@ -31,7 +33,14 @@ export class CleanupService {
 
     for (const container of containersToStop) {
       try {
-        await this.dockerService.stopContainer(container.containerId);
+        if (container.serverId) {
+          await this.serverService.stopContainerOnServer(
+            container.serverId,
+            container.containerId,
+          );
+        } else {
+          await this.dockerService.stopContainer(container.containerId);
+        }
         
         await this.prisma.container.update({
           where: { id: container.id },
@@ -69,7 +78,14 @@ export class CleanupService {
 
     for (const container of oldContainers) {
       try {
-        await this.dockerService.removeContainer(container.containerId);
+        if (container.serverId) {
+          await this.serverService.removeContainerOnServer(
+            container.serverId,
+            container.containerId,
+          );
+        } else {
+          await this.dockerService.removeContainer(container.containerId);
+        }
         
         await this.prisma.container.delete({
           where: { id: container.id },
