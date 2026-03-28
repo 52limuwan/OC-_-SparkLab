@@ -26,15 +26,6 @@ if %ERRORLEVEL% NEQ 0 (
     docker --version
 )
 
-REM Check Go (optional, used by docker-go bridge)
-where go >nul 2>nul
-if %ERRORLEVEL% NEQ 0 (
-    echo Warning: Go not installed - docker-go bridge will not start
-) else (
-    echo Go installed:
-    go version
-)
-
 echo.
 echo Installing dependencies...
 echo.
@@ -115,14 +106,6 @@ REM Start backend
 echo Starting backend service...
 start "Spark Lab Backend" cmd /k "cd backend && npm run start:dev"
 timeout /t 5 /nobreak >nul
-
-REM Start docker-go bridge (optional)
-where go >nul 2>nul
-if %ERRORLEVEL% EQU 0 (
-    echo Starting docker-go bridge...
-    start "Spark Lab Docker-Go" cmd /k "cd docker-go && set DOCKER_GO_ADDR=127.0.0.1:8085 && go run ."
-    timeout /t 2 /nobreak >nul
-)
 
 REM Start frontend
 echo Starting frontend service...

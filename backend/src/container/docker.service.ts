@@ -1,4 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
+import Docker from 'dockerode';
+import { Readable } from 'stream';
 
 interface PortMapping {
   containerPort: number;
@@ -41,20 +43,97 @@ interface CreateContainerResult {
 @Injectable()
 export class DockerService {
   private readonly logger = new Logger(DockerService.name);
-  private readonly baseUrl: string;
+  private readonly docker: Docker;
 
   constructor() {
-    this.baseUrl = (process.env.DOCKER_GO_URL || 'http://127.0.0.1:8085').replace(/\/+$/, '');
+    this.docker = new Docker();
   }
 
   async createContainer(options: CreateContainerOptions): Promise<CreateContainerResult> {
     this.logger.log(`Creating container: ${options.name}`);
 
     try {
-      return await this.request<CreateContainerResult>('/containers', {
-        method: 'POST',
-        body: options,
+      await this.ensureImage(options.image);
+
+      const exposedPorts: { [port: string]: {} } = {};
+      const portBindings: { [port: string]: Array<{ HostPort: string; HostIp?: string }> } = {};
+
+      if (options.portMappings) {
+        for (const pm of options.portMappings) {
+          const proto = pm.protocol || 'tcp';
+          const portKey = `${pm.containerPort}/${proto}`;
+          exposedPorts[portKey] = {};
+
+          if (pm.random) {
+            portBindings[portKey] = [{ HostPort: '' }];
+          } else if (pm.hostPort) {
+            portBindings[portKey] = [{ HostPort: String(pm.hostPort) }];
+          }
+        }
+      }
+
+      const env: string[] = [];
+      if (options.environmentVars) {
+        for (const e of options.environmentVars) {
+          env.push(`${e.name}=${e.value}`);
+        }
+      }
+
+      const binds: string[] = [];
+      if (options.volumeMounts) {
+        for (const v of options.volumeMounts) {
+          const mode = v.mode || 'rw';
+          binds.push(`${v.hostPath}:${v.containerPath}:${mode}`);
+        }
+      }
+
+      const restartPolicy = options.restartPolicy || 'unless-stopped';
+
+      const container = await this.docker.createContainer({
+        Image: options.image,
+        name: options.name,
+        Tty: true,
+        OpenStdin: true,
+        ExposedPorts: exposedPorts,
+        Env: env,
+        HostConfig: {
+          Binds: binds,
+          Memory: options.memoryLimit * 1024 * 1024,
+          NanoCpus: options.cpuLimit * 1_000_000_000,
+          PortBindings: portBindings,
+          AutoRemove: false,
+          RestartPolicy: { Name: restartPolicy },
+        },
       });
+
+      await container.start();
+
+      const inspect = await container.inspect();
+      const actualPorts: Array<{ containerPort: number; hostPort: number; protocol: 'tcp' | 'udp' }> = [];
+
+      if (options.portMappings && inspect.NetworkSettings?.Ports) {
+        for (const pm of options.portMappings) {
+          const proto = pm.protocol || 'tcp';
+          const portKey = `${pm.containerPort}/${proto}`;
+          const bindings = inspect.NetworkSettings.Ports[portKey];
+
+          if (bindings && bindings.length > 0 && bindings[0].HostPort) {
+            const hostPort = parseInt(bindings[0].HostPort, 10);
+            if (hostPort > 0) {
+              actualPorts.push({
+                containerPort: pm.containerPort,
+                hostPort,
+                protocol: proto as 'tcp' | 'udp',
+              });
+            }
+          }
+        }
+      }
+
+      return {
+        id: container.id,
+        portMappings: actualPorts,
+      };
     } catch (error) {
       this.logger.error(`Failed to create container: ${error.message}`);
       throw error;
@@ -63,94 +142,124 @@ export class DockerService {
 
   async startContainer(containerId: string) {
     this.logger.log(`Starting container: ${containerId}`);
-    await this.request(`/containers/${encodeURIComponent(containerId)}/start`, { method: 'POST' });
+    const container = this.docker.getContainer(containerId);
+    await container.start();
   }
 
   async stopContainer(containerId: string) {
     this.logger.log(`Stopping container: ${containerId}`);
-    await this.request(`/containers/${encodeURIComponent(containerId)}/stop`, { method: 'POST' });
+    const container = this.docker.getContainer(containerId);
+    await container.stop({ t: 10 });
   }
 
   async removeContainer(containerId: string) {
     this.logger.log(`Removing container: ${containerId}`);
-    await this.request(`/containers/${encodeURIComponent(containerId)}`, { method: 'DELETE' });
+    const container = this.docker.getContainer(containerId);
+    await container.remove({ force: true, v: true });
   }
 
   async execCommand(containerId: string, command: string) {
     this.logger.log(`Executing command in ${containerId}: ${command}`);
-    return await this.request(`/containers/${encodeURIComponent(containerId)}/exec`, {
-      method: 'POST',
-      body: { command },
+    const container = this.docker.getContainer(containerId);
+
+    const exec = await container.exec({
+      Cmd: ['/bin/sh', '-c', command],
+      AttachStdout: true,
+      AttachStderr: true,
+      Tty: false,
     });
+
+    const stream = await exec.start({ Detach: false, Tty: false });
+    const output = await this.streamToString(stream as Readable);
+
+    return { output };
   }
 
   async execCreate(containerId: string, command: string, options?: any) {
     this.logger.log(`Creating exec instance in ${containerId}: ${command}`);
-    return await this.request(`/containers/${encodeURIComponent(containerId)}/exec/create`, {
-      method: 'POST',
-      body: { command, options },
+    const container = this.docker.getContainer(containerId);
+
+    const cmd = command.split(/\s+/);
+    const exec = await container.exec({
+      Cmd: cmd,
+      AttachStdin: true,
+      AttachStdout: true,
+      AttachStderr: true,
+      Tty: true,
     });
+
+    return { execId: exec.id };
   }
 
   async execStart(containerId: string, execId: string, options?: any) {
-    this.logger.log(`Starting exec instance ${execId} in ${containerId}`);
-    // Note: streaming mode is not supported over this HTTP bridge yet.
+    this.logger.log(`Starting exec instance ${execId}`);
+
     if (options?.stream) {
       return { streaming: true };
     }
-    return await this.request(`/exec/${encodeURIComponent(execId)}/start`, {
-      method: 'POST',
-      body: { stream: false },
-    });
+
+    const exec = this.docker.getExec(execId);
+    const stream = await exec.start({ Detach: false, Tty: true });
+    const output = await this.streamToString(stream as Readable);
+
+    return { output };
   }
 
   async commitContainer(containerId: string, imageName: string) {
     this.logger.log(`Creating snapshot: ${imageName}`);
-    const res = await this.request<{ imageId: string }>(`/containers/${encodeURIComponent(containerId)}/commit`, {
-      method: 'POST',
-      body: { imageName },
+    const container = this.docker.getContainer(containerId);
+
+    const image = await container.commit({
+      repo: imageName,
+      tag: 'latest',
     });
-    return res.imageId;
+
+    return image.Id;
   }
 
   async createFromSnapshot(imageId: string, name: string) {
     this.logger.log(`Creating container from snapshot: ${imageId}`);
-    const res = await this.request<{ id: string }>('/containers/from-snapshot', {
-      method: 'POST',
-      body: { imageId, name },
+
+    const container = await this.docker.createContainer({
+      Image: imageId,
+      name,
+      Tty: true,
+      OpenStdin: true,
+      HostConfig: {
+        PublishAllPorts: true,
+      },
     });
-    return res.id;
+
+    await container.start();
+    return container.id;
   }
 
-  private async request<T = any>(
-    path: string,
-    init: { method: 'GET' | 'POST' | 'DELETE'; body?: any; timeoutMs?: number },
-  ): Promise<T> {
-    const url = `${this.baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), init.timeoutMs ?? 120000);
-
+  private async ensureImage(imageRef: string): Promise<void> {
     try {
-      const res = await fetch(url, {
-        method: init.method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
-        signal: controller.signal,
+      const image = this.docker.getImage(imageRef);
+      await image.inspect();
+      this.logger.log(`Image ${imageRef} already exists`);
+    } catch (error) {
+      this.logger.log(`Pulling image ${imageRef}...`);
+      await new Promise<void>((resolve, reject) => {
+        this.docker.pull(imageRef, (err: any, stream: Readable) => {
+          if (err) return reject(err);
+
+          this.docker.modem.followProgress(stream, (err: any) => {
+            if (err) return reject(err);
+            resolve();
+          });
+        });
       });
-
-      const text = await res.text();
-      const data = text ? JSON.parse(text) : undefined;
-
-      if (!res.ok) {
-        const message = data?.error || res.statusText || 'Docker-Go request failed';
-        throw new Error(message);
-      }
-
-      return data as T;
-    } finally {
-      clearTimeout(timeout);
     }
+  }
+
+  private async streamToString(stream: Readable): Promise<string> {
+    const chunks: Buffer[] = [];
+    return new Promise((resolve, reject) => {
+      stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      stream.on('error', reject);
+      stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    });
   }
 }

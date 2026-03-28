@@ -105,7 +105,7 @@ export default function LabPage() {
           background: '#000000',
           foreground: '#ffffff',
           cursor: '#ffffff',
-          selection: 'rgba(255, 255, 255, 0.3)',
+          selectionBackground: 'rgba(255, 255, 255, 0.3)',
         },
         rows: 30,
         cols: 80,
