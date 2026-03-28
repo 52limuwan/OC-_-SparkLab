@@ -30,6 +30,11 @@ func New(cfg *config.Config, db *gorm.DB) *gin.Engine {
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	})
+	r.GET("/agent/install.sh", h.AgentInstallScript)
+	r.GET("/agent/agent-http.py", h.AgentHTTPPythonFile)
+	r.GET("/agent/agent.py", h.AgentPythonFile)
+	r.POST("/agent/register", h.AgentRegister)
+	r.POST("/agent/heartbeat", h.AgentHeartbeat)
 
 	authGroup := r.Group("/auth")
 	{

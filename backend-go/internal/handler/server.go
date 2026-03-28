@@ -10,6 +10,22 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func (h *Handler) findServerForAdmin(id string) (*model.Server, bool) {
+	var s model.Server
+	if err := h.db.Where("id = ?", id).First(&s).Error; err != nil {
+		return nil, false
+	}
+	return &s, true
+}
+
+func (h *Handler) findContainerByServer(serverID, containerID string) (*model.Container, bool) {
+	var ct model.Container
+	if err := h.db.Where("serverId = ? AND containerId = ?", serverID, containerID).First(&ct).Error; err != nil {
+		return nil, false
+	}
+	return &ct, true
+}
+
 type createServerReq struct {
 	Name string `json:"name"`
 }
@@ -187,12 +203,20 @@ func (h *Handler) GetServerContainers(c *gin.Context) {
 func (h *Handler) StartServerContainer(c *gin.Context) {
 	serverID := c.Param("id")
 	containerID := c.Param("containerId")
-	_ = serverID
+	if _, ok := h.findServerForAdmin(serverID); !ok {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Server not found"})
+		return
+	}
+	if _, ok := h.findContainerByServer(serverID, containerID); !ok {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Container not found"})
+		return
+	}
 
 	now := time.Now()
-	if err := h.db.Model(&model.Container{}).Where("containerId = ?", containerID).Updates(map[string]any{
+	if err := h.db.Model(&model.Container{}).Where("serverId = ? AND containerId = ?", serverID, containerID).Updates(map[string]any{
 		"status":    "running",
 		"startedAt": now,
+		"lastActiveAt": now,
 		"stoppedAt": nil,
 	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to start container"})
@@ -204,10 +228,17 @@ func (h *Handler) StartServerContainer(c *gin.Context) {
 func (h *Handler) StopServerContainer(c *gin.Context) {
 	serverID := c.Param("id")
 	containerID := c.Param("containerId")
-	_ = serverID
+	if _, ok := h.findServerForAdmin(serverID); !ok {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Server not found"})
+		return
+	}
+	if _, ok := h.findContainerByServer(serverID, containerID); !ok {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Container not found"})
+		return
+	}
 
 	now := time.Now()
-	if err := h.db.Model(&model.Container{}).Where("containerId = ?", containerID).Updates(map[string]any{
+	if err := h.db.Model(&model.Container{}).Where("serverId = ? AND containerId = ?", serverID, containerID).Updates(map[string]any{
 		"status":    "stopped",
 		"stoppedAt": now,
 	}).Error; err != nil {
@@ -220,9 +251,16 @@ func (h *Handler) StopServerContainer(c *gin.Context) {
 func (h *Handler) RemoveServerContainer(c *gin.Context) {
 	serverID := c.Param("id")
 	containerID := c.Param("containerId")
-	_ = serverID
+	if _, ok := h.findServerForAdmin(serverID); !ok {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Server not found"})
+		return
+	}
+	if _, ok := h.findContainerByServer(serverID, containerID); !ok {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Container not found"})
+		return
+	}
 
-	if err := h.db.Delete(&model.Container{}, "containerId = ?", containerID).Error; err != nil {
+	if err := h.db.Delete(&model.Container{}, "serverId = ? AND containerId = ?", serverID, containerID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to remove container"})
 		return
 	}
@@ -306,7 +344,7 @@ func (h *Handler) UpdateServer(c *gin.Context) {
 		updates["cpuCores"] = *req.CPUCores
 	}
 	if req.CPUModel != nil {
-		updates["cpuModel"] = req.CPUModel
+		updates["cpuModel"] = *req.CPUModel
 	}
 	if req.TotalMemory != nil {
 		updates["totalMemory"] = *req.TotalMemory
