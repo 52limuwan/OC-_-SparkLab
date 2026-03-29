@@ -15,6 +15,9 @@ import (
 
 func New(cfg *config.Config, db *gorm.DB) *gin.Engine {
 	r := gin.Default()
+	if err := r.SetTrustedProxies([]string{"127.0.0.1", "::1"}); err != nil {
+		panic(err)
+	}
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{cfg.FrontendURL},

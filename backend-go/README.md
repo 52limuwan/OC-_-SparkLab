@@ -91,4 +91,4 @@
 
 当前版本直连 SQLite（`backend/prisma/spark_lab.db`），字段命名与 Prisma 现有表一致。
 
-当前 `servers/images` 与部分远程容器能力仍有模拟响应，后续会继续替换为真实远程执行链路。
+`servers/:id/images` 与 `servers/:id/containers` 相关管理接口已切换为通过 Docker Engine HTTP API（默认 `2375`）进行真实调用。

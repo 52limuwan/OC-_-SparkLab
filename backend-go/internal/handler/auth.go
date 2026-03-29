@@ -138,7 +138,7 @@ func (h *Handler) GetProfile(c *gin.Context) {
 	}
 
 	var u model.User
-	if err := h.db.Where("id = ?", claims.Sub).First(&u).Error; err != nil {
+	if err := h.db.Where("id = ?", claims.Subject).First(&u).Error; err != nil {
 		c.JSON(http.StatusOK, gin.H{"authenticated": false, "user": nil})
 		return
 	}

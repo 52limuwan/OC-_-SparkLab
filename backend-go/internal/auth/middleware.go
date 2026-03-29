@@ -21,7 +21,7 @@ func JWTAuth(secret string) gin.HandlerFunc {
 			return
 		}
 
-		c.Set("userId", claims.Sub)
+		c.Set("userId", claims.Subject)
 		c.Set("username", claims.Username)
 		c.Set("role", claims.Role)
 		c.Next()
@@ -38,7 +38,7 @@ func OptionalJWTAuth(secret string) gin.HandlerFunc {
 
 		claims, err := ParseToken(token, secret)
 		if err == nil {
-			c.Set("userId", claims.Sub)
+			c.Set("userId", claims.Subject)
 			c.Set("username", claims.Username)
 			c.Set("role", claims.Role)
 		}
