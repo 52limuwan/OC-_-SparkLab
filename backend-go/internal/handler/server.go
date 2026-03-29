@@ -175,13 +175,31 @@ func (h *Handler) CreateServer(c *gin.Context) {
 
 func (h *Handler) GetServers(c *gin.Context) {
 	type row struct {
-		model.Server
-		ContainerCount int64 `gorm:"column:containerCount"`
+		ID               string    `gorm:"column:id"`
+		Name             string    `gorm:"column:name"`
+		Host             string    `gorm:"column:host"`
+		Port             int       `gorm:"column:port"`
+		Username         string    `gorm:"column:username"`
+		AuthType         string    `gorm:"column:authType"`
+		Password         *string   `gorm:"column:password"`
+		PrivateKey       *string   `gorm:"column:privateKey"`
+		Status           string    `gorm:"column:status"`
+		LastCheckAt      int64     `gorm:"column:lastCheckAt"`
+		MaxContainers    int       `gorm:"column:maxContainers"`
+		CPUCores         int       `gorm:"column:cpuCores"`
+		CPUModel         *string   `gorm:"column:cpuModel"`
+		TotalMemory      int       `gorm:"column:totalMemory"`
+		ActiveContainers int       `gorm:"column:activeContainers"`
+		CPUUsage         float64   `gorm:"column:cpuUsage"`
+		MemoryUsage      float64   `gorm:"column:memoryUsage"`
+		CreatedAt        int64     `gorm:"column:createdAt"`
+		UpdatedAt        int64     `gorm:"column:updatedAt"`
+		ContainerCount   int64     `gorm:"column:containerCount"`
 	}
 
 	var rows []row
 	err := h.db.Table("servers s").
-		Select("s.*, (SELECT COUNT(1) FROM containers c WHERE c.serverId = s.id) as containerCount").
+		Select("s.id, s.name, s.host, s.port, s.username, s.authType, s.password, s.privateKey, s.status, cast(s.lastCheckAt as integer) as lastCheckAt, s.maxContainers, s.cpuCores, s.cpuModel, s.totalMemory, s.activeContainers, s.cpuUsage, s.memoryUsage, cast(s.createdAt as integer) as createdAt, cast(s.updatedAt as integer) as updatedAt, (SELECT COUNT(1) FROM containers c WHERE c.serverId = s.id) as containerCount").
 		Order("s.createdAt desc").
 		Find(&rows).Error
 	if err != nil {

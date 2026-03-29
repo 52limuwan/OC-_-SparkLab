@@ -63,15 +63,21 @@ func (h *Handler) RequireAdmin() gin.HandlerFunc {
 }
 
 func (h *Handler) AdminGetUsers(c *gin.Context) {
-	type row struct {
-		model.User
-		ContainerCount  int64 `gorm:"column:containerCount"`
-		SubmissionCount int64 `gorm:"column:submissionCount"`
+	type userRow struct {
+		ID              string `gorm:"column:id"`
+		Username        string `gorm:"column:username"`
+		DisplayName     string `gorm:"column:displayName"`
+		Role            string `gorm:"column:role"`
+		QQNumber        string `gorm:"column:qqNumber"`
+		CreatedAt       int64  `gorm:"column:createdAt"`
+		LastActiveAt    int64  `gorm:"column:lastActiveAt"`
+		ContainerCount  int64  `gorm:"column:containerCount"`
+		SubmissionCount int64  `gorm:"column:submissionCount"`
 	}
 
-	var rows []row
+	var rows []userRow
 	err := h.db.Table("users u").
-		Select("u.*, (SELECT COUNT(1) FROM containers c WHERE c.userId = u.id) as containerCount, (SELECT COUNT(1) FROM submissions s WHERE s.userId = u.id) as submissionCount").
+		Select("u.id, u.username, u.displayName, u.role, u.qqNumber, cast(u.createdAt as integer) as createdAt, cast(u.lastActiveAt as integer) as lastActiveAt, (SELECT COUNT(1) FROM containers c WHERE c.userId = u.id) as containerCount, (SELECT COUNT(1) FROM submissions s WHERE s.userId = u.id) as submissionCount").
 		Order("u.createdAt desc").
 		Find(&rows).Error
 	if err != nil {
@@ -461,7 +467,13 @@ func (h *Handler) AdminDeleteLab(c *gin.Context) {
 
 func (h *Handler) AdminGetContainers(c *gin.Context) {
 	type row struct {
-		model.Container
+		ID          string  `gorm:"column:id"`
+		UserID      string  `gorm:"column:userId"`
+		LabID       string  `gorm:"column:labId"`
+		ServerID    string  `gorm:"column:serverId"`
+		ContainerID string  `gorm:"column:containerId"`
+		Status      string  `gorm:"column:status"`
+		CreatedAt   int64   `gorm:"column:createdAt"`
 		Username    *string `gorm:"column:username"`
 		DisplayName *string `gorm:"column:displayName"`
 		LabTitle    *string `gorm:"column:labTitle"`
@@ -469,7 +481,7 @@ func (h *Handler) AdminGetContainers(c *gin.Context) {
 
 	var rows []row
 	err := h.db.Table("containers c").
-		Select("c.*, u.username as username, u.displayName as displayName, l.title as labTitle").
+		Select("c.id, c.userId, c.labId, c.serverId, c.containerId, c.status, cast(c.createdAt as integer) as createdAt, u.username as username, u.displayName as displayName, l.title as labTitle").
 		Joins("LEFT JOIN users u ON u.id = c.userId").
 		Joins("LEFT JOIN labs l ON l.id = c.labId").
 		Order("c.createdAt desc").
@@ -517,12 +529,12 @@ func (h *Handler) AdminForceStopContainer(c *gin.Context) {
 
 func (h *Handler) AdminStats(c *gin.Context) {
 	var totalUsers, totalCourses, totalLabs, activeContainers, totalSubmissions, totalContainers int64
-	h.db.Model(&model.User{}).Count(&totalUsers)
-	h.db.Model(&model.Course{}).Count(&totalCourses)
-	h.db.Model(&model.Lab{}).Count(&totalLabs)
-	h.db.Model(&model.Container{}).Where("status = ?", "running").Count(&activeContainers)
-	h.db.Model(&model.Container{}).Count(&totalContainers)
-	h.db.Model(&model.Submission{}).Count(&totalSubmissions)
+	h.db.Table("users").Count(&totalUsers)
+	h.db.Table("courses").Count(&totalCourses)
+	h.db.Table("labs").Count(&totalLabs)
+	h.db.Table("containers").Where("status = ?", "running").Count(&activeContainers)
+	h.db.Table("containers").Count(&totalContainers)
+	h.db.Table("submissions").Count(&totalSubmissions)
 
 	type statusRow struct {
 		Status string `gorm:"column:status" json:"status"`
@@ -532,21 +544,26 @@ func (h *Handler) AdminStats(c *gin.Context) {
 	h.db.Table("containers").Select("status, count(1) as count").Group("status").Find(&statusRows)
 
 	type userRow struct {
-		ID           string     `gorm:"column:id"`
-		Username     string     `gorm:"column:username"`
-		DisplayName  string     `gorm:"column:displayName"`
-		QQNumber     *string    `gorm:"column:qqNumber"`
-		Role         string     `gorm:"column:role"`
-		LastActiveAt *time.Time `gorm:"column:lastActiveAt"`
+		ID           string  `gorm:"column:id"`
+		Username     string  `gorm:"column:username"`
+		DisplayName  string  `gorm:"column:displayName"`
+		QQNumber     *string `gorm:"column:qqNumber"`
+		Role         string  `gorm:"column:role"`
+		LastActiveAt int64   `gorm:"column:lastActiveAt"`
 	}
 	var recentUsers []userRow
-	h.db.Table("users").Where("role <> ?", "ADMIN").Order("lastActiveAt desc").Limit(5).Find(&recentUsers)
+	h.db.Table("users").
+		Select("id, username, displayName, qqNumber, role, cast(lastActiveAt as integer) as lastActiveAt").
+		Where("role <> ?", "ADMIN").
+		Order("lastActiveAt desc").
+		Limit(5).
+		Find(&recentUsers)
 
 	usersResp := make([]gin.H, 0, len(recentUsers))
 	for _, u := range recentUsers {
 		var cc, sc int64
-		h.db.Model(&model.Container{}).Where("userId = ?", u.ID).Count(&cc)
-		h.db.Model(&model.Submission{}).Where("userId = ?", u.ID).Count(&sc)
+		h.db.Table("containers").Where("userId = ?", u.ID).Count(&cc)
+		h.db.Table("submissions").Where("userId = ?", u.ID).Count(&sc)
 		usersResp = append(usersResp, gin.H{
 			"id":           u.ID,
 			"username":     u.Username,
@@ -562,20 +579,20 @@ func (h *Handler) AdminStats(c *gin.Context) {
 	}
 
 	type containerRow struct {
-		ID         string     `gorm:"column:id"`
-		Status     string     `gorm:"column:status"`
-		CreatedAt  time.Time  `gorm:"column:createdAt"`
-		Username   *string    `gorm:"column:username"`
-		Display    *string    `gorm:"column:displayName"`
-		LabTitle   *string    `gorm:"column:labTitle"`
-		StoppedAt  *time.Time `gorm:"column:stoppedAt"`
-		StartedAt  *time.Time `gorm:"column:startedAt"`
-		ServerID   *string    `gorm:"column:serverId"`
-		ContainerID string    `gorm:"column:containerId"`
+		ID          string  `gorm:"column:id"`
+		Status      string  `gorm:"column:status"`
+		CreatedAt   int64   `gorm:"column:createdAt"`
+		Username    *string `gorm:"column:username"`
+		Display     *string `gorm:"column:displayName"`
+		LabTitle    *string `gorm:"column:labTitle"`
+		StoppedAt   *int64  `gorm:"column:stoppedAt"`
+		StartedAt   *int64  `gorm:"column:startedAt"`
+		ServerID    *string `gorm:"column:serverId"`
+		ContainerID string  `gorm:"column:containerId"`
 	}
 	var recentContainers []containerRow
 	h.db.Table("containers c").
-		Select("c.id, c.status, c.createdAt, c.stoppedAt, c.startedAt, c.serverId, c.containerId, u.username as username, u.displayName as displayName, l.title as labTitle").
+		Select("c.id, c.status, cast(c.createdAt as integer) as createdAt, cast(c.stoppedAt as integer) as stoppedAt, cast(c.startedAt as integer) as startedAt, c.serverId, c.containerId, u.username as username, u.displayName as displayName, l.title as labTitle").
 		Joins("LEFT JOIN users u ON u.id = c.userId").
 		Joins("LEFT JOIN labs l ON l.id = c.labId").
 		Order("c.createdAt desc").
@@ -599,17 +616,22 @@ func (h *Handler) AdminStats(c *gin.Context) {
 	}
 
 	type courseRow struct {
-		ID    string `gorm:"column:id"`
-		Title string `gorm:"column:title"`
+		ID        string `gorm:"column:id"`
+		Title     string `gorm:"column:title"`
+		CreatedAt int64  `gorm:"column:createdAt"`
 	}
 	var topCourses []courseRow
-	h.db.Table("courses").Order("createdAt desc").Limit(5).Find(&topCourses)
+	h.db.Table("courses").
+		Select("id, title, cast(createdAt as integer) as createdAt").
+		Order("createdAt desc").
+		Limit(5).
+		Find(&topCourses)
 
 	courseResp := make([]gin.H, 0, len(topCourses))
 	for _, cc := range topCourses {
 		var ec, lc int64
-		h.db.Model(&model.Enrollment{}).Where("courseId = ?", cc.ID).Count(&ec)
-		h.db.Model(&model.Lab{}).Where("courseId = ?", cc.ID).Count(&lc)
+		h.db.Table("enrollments").Where("courseId = ?", cc.ID).Count(&ec)
+		h.db.Table("labs").Where("courseId = ?", cc.ID).Count(&lc)
 		courseResp = append(courseResp, gin.H{
 			"id":    cc.ID,
 			"title": cc.Title,

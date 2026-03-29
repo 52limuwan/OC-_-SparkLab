@@ -105,45 +105,58 @@ func (h *Handler) GetContainers(c *gin.Context) {
 	uid, _ := userIDFromCtx(c)
 	role := userRoleFromCtx(c)
 
-	type containerJoin struct {
-		model.Container
-		LabTitle *string `gorm:"column:labTitle"`
+	type row struct {
+		ID           string  `gorm:"column:id"`
+		UserID       string  `gorm:"column:userId"`
+		LabID        string  `gorm:"column:labId"`
+		ServerID     string  `gorm:"column:serverId"`
+		ContainerID  string  `gorm:"column:containerId"`
+		Status       string  `gorm:"column:status"`
+		PortMappings string  `gorm:"column:portMappings"`
+		CPULimit     float64 `gorm:"column:cpuLimit"`
+		MemoryLimit  int64   `gorm:"column:memoryLimit"`
+		CreatedAt    int64   `gorm:"column:createdAt"`
+		StartedAt    *int64  `gorm:"column:startedAt"`
+		StoppedAt    *int64  `gorm:"column:stoppedAt"`
+		LastActiveAt int64   `gorm:"column:lastActiveAt"`
+		AutoStopAt   *int64  `gorm:"column:autoStopAt"`
+		LabTitle     *string `gorm:"column:labTitle"`
 	}
 
 	q := h.db.Table("containers c").
-		Select("c.*, l.title as labTitle").
+		Select("c.id, c.userId, c.labId, c.serverId, c.containerId, c.status, c.portMappings, c.cpuLimit, c.memoryLimit, cast(c.createdAt as integer) as createdAt, cast(c.startedAt as integer) as startedAt, cast(c.stoppedAt as integer) as stoppedAt, cast(c.lastActiveAt as integer) as lastActiveAt, cast(c.autoStopAt as integer) as autoStopAt, l.title as labTitle").
 		Joins("LEFT JOIN labs l ON l.id = c.labId").
 		Order("c.createdAt desc")
 	if role != "ADMIN" {
 		q = q.Where("c.userId = ?", uid)
 	}
 
-	var rows []containerJoin
+	var rows []row
 	if err := q.Find(&rows).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Load containers failed"})
 		return
 	}
 
 	resp := make([]gin.H, 0, len(rows))
-	for _, row := range rows {
+	for _, r := range rows {
 		resp = append(resp, gin.H{
-			"id":           row.ID,
-			"userId":       row.UserID,
-			"labId":        row.LabID,
-			"serverId":     row.ServerID,
-			"containerId":  row.ContainerID,
-			"status":       row.Status,
-			"portMappings": row.PortMappings,
-			"cpuLimit":     row.CPULimit,
-			"memoryLimit":  row.MemoryLimit,
-			"createdAt":    row.CreatedAt,
-			"startedAt":    row.StartedAt,
-			"stoppedAt":    row.StoppedAt,
-			"lastActiveAt": row.LastActiveAt,
-			"autoStopAt":   row.AutoStopAt,
+			"id":           r.ID,
+			"userId":       r.UserID,
+			"labId":        r.LabID,
+			"serverId":     r.ServerID,
+			"containerId":  r.ContainerID,
+			"status":       r.Status,
+			"portMappings": r.PortMappings,
+			"cpuLimit":     r.CPULimit,
+			"memoryLimit":  r.MemoryLimit,
+			"createdAt":    r.CreatedAt,
+			"startedAt":    r.StartedAt,
+			"stoppedAt":    r.StoppedAt,
+			"lastActiveAt": r.LastActiveAt,
+			"autoStopAt":   r.AutoStopAt,
 			"lab": gin.H{
-				"id":    row.LabID,
-				"title": row.LabTitle,
+				"id":    r.LabID,
+				"title": r.LabTitle,
 			},
 		})
 	}
@@ -156,7 +169,12 @@ func (h *Handler) getOwnedContainer(c *gin.Context, id string) (*model.Container
 	role := userRoleFromCtx(c)
 
 	var container model.Container
-	if err := h.db.Where("id = ?", id).First(&container).Error; err != nil {
+	// Using Table for manual scan to avoid type issues with SQLite dates
+	err := h.db.Table("containers").
+		Select("*, cast(createdAt as integer) as createdAt, cast(updatedAt as integer) as updatedAt, cast(startedAt as integer) as startedAt, cast(stoppedAt as integer) as stoppedAt, cast(lastActiveAt as integer) as lastActiveAt, cast(autoStopAt as integer) as autoStopAt").
+		Where("id = ?", id).
+		First(&container).Error
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Container not found"})
 		return nil, false
 	}
@@ -191,12 +209,15 @@ func (h *Handler) StartContainer(c *gin.Context) {
 		"autoStopAt":   now.Add(autoStopTimeout()),
 		"stoppedAt":    nil,
 	}
-	if err := h.db.Model(&model.Container{}).Where("id = ?", container.ID).Updates(updates).Error; err != nil {
+	if err := h.db.Table("containers").Where("id = ?", container.ID).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Start container failed"})
 		return
 	}
 
-	h.db.Where("id = ?", container.ID).First(&container)
+	h.db.Table("containers").
+		Select("*, cast(createdAt as integer) as createdAt, cast(updatedAt as integer) as updatedAt, cast(startedAt as integer) as startedAt, cast(stoppedAt as integer) as stoppedAt, cast(lastActiveAt as integer) as lastActiveAt, cast(autoStopAt as integer) as autoStopAt").
+		Where("id = ?", container.ID).
+		First(&container)
 	c.JSON(http.StatusOK, container)
 }
 
@@ -211,12 +232,15 @@ func (h *Handler) StopContainer(c *gin.Context) {
 		"status":    "stopped",
 		"stoppedAt": now,
 	}
-	if err := h.db.Model(&model.Container{}).Where("id = ?", container.ID).Updates(updates).Error; err != nil {
+	if err := h.db.Table("containers").Where("id = ?", container.ID).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Stop container failed"})
 		return
 	}
 
-	h.db.Where("id = ?", container.ID).First(&container)
+	h.db.Table("containers").
+		Select("*, cast(createdAt as integer) as createdAt, cast(updatedAt as integer) as updatedAt, cast(startedAt as integer) as startedAt, cast(stoppedAt as integer) as stoppedAt, cast(lastActiveAt as integer) as lastActiveAt, cast(autoStopAt as integer) as autoStopAt").
+		Where("id = ?", container.ID).
+		First(&container)
 	c.JSON(http.StatusOK, container)
 }
 
@@ -241,7 +265,7 @@ func (h *Handler) ContainerHeartbeat(c *gin.Context) {
 	}
 
 	now := time.Now()
-	if err := h.db.Model(&model.Container{}).Where("id = ?", container.ID).Updates(map[string]any{
+	if err := h.db.Table("containers").Where("id = ?", container.ID).Updates(map[string]any{
 		"lastActiveAt": now,
 		"autoStopAt":   now.Add(autoStopTimeout()),
 	}).Error; err != nil {
@@ -249,7 +273,10 @@ func (h *Handler) ContainerHeartbeat(c *gin.Context) {
 		return
 	}
 
-	h.db.Where("id = ?", container.ID).First(&container)
+	h.db.Table("containers").
+		Select("*, cast(createdAt as integer) as createdAt, cast(updatedAt as integer) as updatedAt, cast(startedAt as integer) as startedAt, cast(stoppedAt as integer) as stoppedAt, cast(lastActiveAt as integer) as lastActiveAt, cast(autoStopAt as integer) as autoStopAt").
+		Where("id = ?", container.ID).
+		First(&container)
 	c.JSON(http.StatusOK, container)
 }
 

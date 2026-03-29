@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
@@ -12,6 +13,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
+
+type authUserRecord struct {
+	ID          string  `gorm:"column:id"`
+	Username    string  `gorm:"column:username"`
+	DisplayName string  `gorm:"column:displayName"`
+	Email       string  `gorm:"column:email"`
+	Password    string  `gorm:"column:password"`
+	Role        string  `gorm:"column:role"`
+	Avatar      *string `gorm:"column:avatar"`
+	QQNumber    *string `gorm:"column:qqNumber"`
+}
 
 type registerReq struct {
 	Username    string  `json:"username"`
@@ -43,17 +55,27 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	var existing model.User
-	err := h.db.Where("username = ?", req.Username).First(&existing).Error
+	var existing struct {
+		ID string `gorm:"column:id"`
+	}
+	err := h.db.Table("users").Select("id").Where("username = ?", req.Username).Take(&existing).Error
 	if err == nil {
 		c.JSON(http.StatusConflict, gin.H{"message": "Username or QQ number already exists"})
 		return
 	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		util.Error(c, http.StatusInternalServerError, "Check username failed")
+		return
+	}
 
 	if req.QQNumber != nil && *req.QQNumber != "" {
-		err = h.db.Where("qqNumber = ?", *req.QQNumber).First(&existing).Error
+		err = h.db.Table("users").Select("id").Where("qqNumber = ?", *req.QQNumber).Take(&existing).Error
 		if err == nil {
 			c.JSON(http.StatusConflict, gin.H{"message": "Username or QQ number already exists"})
+			return
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			util.Error(c, http.StatusInternalServerError, "Check QQ number failed")
 			return
 		}
 	}
@@ -82,7 +104,7 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, sanitizeUser(u))
+	c.JSON(http.StatusCreated, sanitizeModelUser(u))
 }
 
 func (h *Handler) Login(c *gin.Context) {
@@ -92,8 +114,11 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	var u model.User
-	err := h.db.Where("username = ? OR qqNumber = ?", req.Username, req.Username).First(&u).Error
+	var u authUserRecord
+	err := h.db.Table("users").
+		Select("id, username, displayName, email, password, role, avatar, qqNumber").
+		Where("username = ? OR qqNumber = ?", req.Username, req.Username).
+		Take(&u).Error
 	if err != nil {
 		util.Unauthorized(c, "Invalid credentials")
 		return
@@ -137,8 +162,11 @@ func (h *Handler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	var u model.User
-	if err := h.db.Where("id = ?", claims.Subject).First(&u).Error; err != nil {
+	var u authUserRecord
+	if err := h.db.Table("users").
+		Select("id, username, displayName, email, password, role, avatar, qqNumber").
+		Where("id = ?", claims.Subject).
+		Take(&u).Error; err != nil {
 		c.JSON(http.StatusOK, gin.H{"authenticated": false, "user": nil})
 		return
 	}
@@ -148,8 +176,11 @@ func (h *Handler) GetProfile(c *gin.Context) {
 
 func (h *Handler) CheckAuth(c *gin.Context) {
 	uid, _ := userIDFromCtx(c)
-	var u model.User
-	if err := h.db.Where("id = ?", uid).First(&u).Error; err != nil {
+	var u authUserRecord
+	if err := h.db.Table("users").
+		Select("id, username, displayName, email, password, role, avatar, qqNumber").
+		Where("id = ?", uid).
+		Take(&u).Error; err != nil {
 		util.Unauthorized(c, "Unauthorized")
 		return
 	}
@@ -185,8 +216,11 @@ func (h *Handler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	var u model.User
-	h.db.Where("id = ?", uid).First(&u)
+	var u authUserRecord
+	h.db.Table("users").
+		Select("id, username, displayName, email, password, role, avatar, qqNumber").
+		Where("id = ?", uid).
+		Take(&u)
 	c.JSON(http.StatusOK, sanitizeUser(u))
 }
 
@@ -224,7 +258,19 @@ type userResp struct {
 	QQNumber    *string `json:"qqNumber,omitempty"`
 }
 
-func sanitizeUser(u model.User) userResp {
+func sanitizeUser(u authUserRecord) userResp {
+	return userResp{
+		ID:          u.ID,
+		Username:    u.Username,
+		DisplayName: u.DisplayName,
+		Email:       u.Email,
+		Role:        u.Role,
+		Avatar:      u.Avatar,
+		QQNumber:    u.QQNumber,
+	}
+}
+
+func sanitizeModelUser(u model.User) userResp {
 	return userResp{
 		ID:          u.ID,
 		Username:    u.Username,
