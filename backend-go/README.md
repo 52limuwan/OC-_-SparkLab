@@ -84,7 +84,8 @@
 ## Agent 状态机制
 
 - Agent 每次 `register/heartbeat` 会刷新 `servers.lastCheckAt` 并更新 `status=online`。
-- 后端内置离线监控任务：若超过 10 秒未收到心跳，则自动标记为 `offline`。
+- 后端内置离线监控任务：若超过 `AGENT_OFFLINE_TIMEOUT` 未收到心跳，则自动标记为 `offline`。
+- 检查间隔由 `AGENT_OFFLINE_CHECK_INTERVAL` 控制。
 
 ## 说明
 

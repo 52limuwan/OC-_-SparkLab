@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"time"
 
 	"bigdata_zhoc/backend-go/internal/config"
 	"bigdata_zhoc/backend-go/internal/db"
@@ -23,7 +22,7 @@ func main() {
 		log.Fatalf("open db failed: %v", err)
 	}
 
-	go monitor.StartAgentOfflineMonitor(context.Background(), database, 10*time.Second, 5*time.Second)
+	go monitor.StartAgentOfflineMonitor(context.Background(), database, cfg.AgentOfflineTimeout, cfg.AgentOfflineCheckInterval)
 
 	r := router.New(cfg, database)
 	log.Printf("Spark Lab Go Backend running on http://localhost:%s", cfg.Port)
