@@ -11,56 +11,57 @@ type User struct {
 	Role         string    `gorm:"column:role" json:"role"`
 	Avatar       *string   `gorm:"column:avatar" json:"avatar,omitempty"`
 	QQNumber     *string   `gorm:"column:qqNumber" json:"qqNumber,omitempty"`
-	CreatedAt    time.Time `gorm:"column:createdAt" json:"createdAt"`
-	UpdatedAt    time.Time `gorm:"column:updatedAt" json:"-"`
-	LastActiveAt time.Time `gorm:"column:lastActiveAt" json:"lastActiveAt"`
+	CreatedAt    UnixTime  `gorm:"column:createdAt" json:"createdAt"`
+	UpdatedAt    UnixTime  `gorm:"column:updatedAt" json:"-"`
+	LastActiveAt UnixTime  `gorm:"column:lastActiveAt" json:"lastActiveAt"`
 }
 
 func (User) TableName() string { return "users" }
 
 type Course struct {
-	ID          string    `gorm:"column:id;primaryKey" json:"id"`
-	Title       string    `gorm:"column:title" json:"title"`
-	Description string    `gorm:"column:description" json:"description"`
-	Cover       *string   `gorm:"column:cover" json:"cover,omitempty"`
-	Difficulty  string    `gorm:"column:difficulty" json:"difficulty"`
-	Duration    int       `gorm:"column:duration" json:"duration"`
-	IsPublished bool      `gorm:"column:isPublished" json:"isPublished"`
-	CreatedAt   time.Time `gorm:"column:createdAt" json:"createdAt"`
-	UpdatedAt   time.Time `gorm:"column:updatedAt" json:"updatedAt"`
+	ID          string   `gorm:"column:id;primaryKey" json:"id"`
+	Title       string   `gorm:"column:title" json:"title"`
+	Description string   `gorm:"column:description" json:"description"`
+	Cover       *string  `gorm:"column:cover" json:"cover,omitempty"`
+	Difficulty  string   `gorm:"column:difficulty" json:"difficulty"`
+	Duration    int      `gorm:"column:duration" json:"duration"`
+	IsPublished bool     `gorm:"column:isPublished" json:"isPublished"`
+	CreatedAt   UnixTime `gorm:"column:createdAt" json:"createdAt"`
+	UpdatedAt   UnixTime `gorm:"column:updatedAt" json:"updatedAt"`
 }
 
 func (Course) TableName() string { return "courses" }
 
 type Lab struct {
-	ID              string    `gorm:"column:id;primaryKey" json:"id"`
-	CourseID        string    `gorm:"column:courseId" json:"courseId"`
-	Title           string    `gorm:"column:title" json:"title"`
-	Description     string    `gorm:"column:description" json:"description"`
-	Content         string    `gorm:"column:content" json:"content"`
-	Difficulty      string    `gorm:"column:difficulty" json:"difficulty"`
-	Order           int       `gorm:"column:order" json:"order"`
-	Points          int       `gorm:"column:points" json:"points"`
-	TimeLimit       int       `gorm:"column:timeLimit" json:"timeLimit"`
-	ServerID        *string   `gorm:"column:serverId" json:"serverId,omitempty"`
-	DockerImage     string    `gorm:"column:dockerImage" json:"dockerImage"`
-	CPULimit        float64   `gorm:"column:cpuLimit" json:"cpuLimit"`
-	MemoryLimit     int       `gorm:"column:memoryLimit" json:"memoryLimit"`
-	ShellCmd        string    `gorm:"column:shellCommand" json:"shellCommand"`
-	PortMappings    *string   `gorm:"column:portMappings" json:"portMappings,omitempty"`
-	EnvironmentVars *string   `gorm:"column:environmentVars" json:"environmentVars,omitempty"`
-	VolumeMounts    *string   `gorm:"column:volumeMounts" json:"volumeMounts,omitempty"`
-	RestartPolicy   string    `gorm:"column:restartPolicy" json:"restartPolicy"`
-	JudgeType       string    `gorm:"column:judgeType" json:"judgeType"`
-	JudgeScript     *string   `gorm:"column:judgeScript" json:"judgeScript,omitempty"`
-	CreatedAt       time.Time `gorm:"column:createdAt" json:"createdAt"`
-	UpdatedAt       time.Time `gorm:"column:updatedAt" json:"updatedAt"`
+	ID              string   `gorm:"column:id;primaryKey" json:"id"`
+	CourseID        string   `gorm:"column:courseId" json:"courseId"`
+	Title           string   `gorm:"column:title" json:"title"`
+	Description     string   `gorm:"column:description" json:"description"`
+	Content         string   `gorm:"column:content" json:"content"`
+	Difficulty      string   `gorm:"column:difficulty" json:"difficulty"`
+	Order           int      `gorm:"column:order" json:"order"`
+	Points          int      `gorm:"column:points" json:"points"`
+	TimeLimit       int      `gorm:"column:timeLimit" json:"timeLimit"`
+	ServerID        *string  `gorm:"column:serverId" json:"serverId,omitempty"`
+	DockerImage     string   `gorm:"column:dockerImage" json:"dockerImage"`
+	CPULimit        float64  `gorm:"column:cpuLimit" json:"cpuLimit"`
+	MemoryLimit     int      `gorm:"column:memoryLimit" json:"memoryLimit"`
+	ShellCmd        string   `gorm:"column:shellCommand" json:"shellCommand"`
+	PortMappings    *string  `gorm:"column:portMappings" json:"portMappings,omitempty"`
+	EnvironmentVars *string  `gorm:"column:environmentVars" json:"environmentVars,omitempty"`
+	VolumeMounts    *string  `gorm:"column:volumeMounts" json:"volumeMounts,omitempty"`
+	RestartPolicy   string   `gorm:"column:restartPolicy" json:"restartPolicy"`
+	JudgeType       string   `gorm:"column:judgeType" json:"judgeType"`
+	JudgeScript     *string  `gorm:"column:judgeScript" json:"judgeScript,omitempty"`
+	CreatedAt       UnixTime `gorm:"column:createdAt" json:"createdAt"`
+	UpdatedAt       UnixTime `gorm:"column:updatedAt" json:"updatedAt"`
 }
 
 func (Lab) TableName() string { return "labs" }
 
 type Step struct {
 	ID      string  `gorm:"column:id;primaryKey" json:"id"`
+    // ... rest unchanged
 	LabID   string  `gorm:"column:labId" json:"labId"`
 	Title   string  `gorm:"column:title" json:"title"`
 	Content string  `gorm:"column:content" json:"content"`
@@ -71,26 +72,26 @@ type Step struct {
 func (Step) TableName() string { return "steps" }
 
 type Enrollment struct {
-	ID          string     `gorm:"column:id;primaryKey" json:"id"`
-	UserID      string     `gorm:"column:userId" json:"userId"`
-	CourseID    string     `gorm:"column:courseId" json:"courseId"`
-	Progress    int        `gorm:"column:progress" json:"progress"`
-	StartedAt   time.Time  `gorm:"column:startedAt" json:"startedAt"`
-	CompletedAt *time.Time `gorm:"column:completedAt" json:"completedAt,omitempty"`
+	ID          string    `gorm:"column:id;primaryKey" json:"id"`
+	UserID      string    `gorm:"column:userId" json:"userId"`
+	CourseID    string    `gorm:"column:courseId" json:"courseId"`
+	Progress    int       `gorm:"column:progress" json:"progress"`
+	StartedAt   UnixTime  `gorm:"column:startedAt" json:"startedAt"`
+	CompletedAt *UnixTime `gorm:"column:completedAt" json:"completedAt,omitempty"`
 }
 
 func (Enrollment) TableName() string { return "enrollments" }
 
 type Submission struct {
-	ID          string    `gorm:"column:id;primaryKey" json:"id"`
-	UserID      string    `gorm:"column:userId" json:"userId"`
-	LabID       string    `gorm:"column:labId" json:"labId"`
-	Score       int       `gorm:"column:score" json:"score"`
-	MaxScore    int       `gorm:"column:maxScore" json:"maxScore"`
-	Status      string    `gorm:"column:status" json:"status"`
-	Output      *string   `gorm:"column:output" json:"output,omitempty"`
-	Logs        *string   `gorm:"column:logs" json:"logs,omitempty"`
-	SubmittedAt time.Time `gorm:"column:submittedAt" json:"submittedAt"`
+	ID          string   `gorm:"column:id;primaryKey" json:"id"`
+	UserID      string   `gorm:"column:userId" json:"userId"`
+	LabID       string   `gorm:"column:labId" json:"labId"`
+	Score       int      `gorm:"column:score" json:"score"`
+	MaxScore    int      `gorm:"column:maxScore" json:"maxScore"`
+	Status      string   `gorm:"column:status" json:"status"`
+	Output      *string  `gorm:"column:output" json:"output,omitempty"`
+	Logs        *string  `gorm:"column:logs" json:"logs,omitempty"`
+	SubmittedAt UnixTime `gorm:"column:submittedAt" json:"submittedAt"`
 }
 
 func (Submission) TableName() string { return "submissions" }

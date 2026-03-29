@@ -3,7 +3,6 @@ package handler
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	"bigdata_zhoc/backend-go/internal/auth"
 	"bigdata_zhoc/backend-go/internal/model"
@@ -94,9 +93,9 @@ func (h *Handler) Register(c *gin.Context) {
 		Password:     string(hashed),
 		Role:         "STUDENT",
 		QQNumber:     req.QQNumber,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-		LastActiveAt: time.Now(),
+		CreatedAt:    model.Now(),
+		UpdatedAt:    model.Now(),
+		LastActiveAt: model.Now(),
 	}
 
 	if err := h.db.Create(&u).Error; err != nil {
@@ -135,7 +134,7 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	h.db.Model(&model.User{}).Where("id = ?", u.ID).Update("lastActiveAt", time.Now())
+	h.db.Model(&model.User{}).Where("id = ?", u.ID).Update("lastActiveAt", model.Now())
 
 	c.SetCookie("access_token", token, 7*24*3600, "/", "", false, true)
 	c.JSON(http.StatusOK, gin.H{
@@ -196,7 +195,7 @@ func (h *Handler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	updates := map[string]any{"updatedAt": time.Now()}
+	updates := map[string]any{"updatedAt": model.Now()}
 	if req.Username != nil {
 		updates["username"] = *req.Username
 	}

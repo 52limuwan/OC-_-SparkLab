@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"time"
 
 	"bigdata_zhoc/backend-go/internal/model"
 
@@ -20,7 +19,7 @@ func (h *Handler) GetLab(c *gin.Context) {
 	}
 
 	var course model.Course
-	h.db.Where("id = ?", lab.CourseID).First(&course)
+	h.db.Where("id = ?", lab.CourseID).Limit(1).Find(&course)
 
 	var steps []model.Step
 	h.db.Where("labId = ?", lab.ID).Order("`order` asc").Find(&steps)
@@ -29,7 +28,7 @@ func (h *Handler) GetLab(c *gin.Context) {
 	if hasUser {
 		var s model.Submission
 		if err := h.db.Where("userId = ? AND labId = ?", uid, lab.ID).
-			Order("submittedAt desc").First(&s).Error; err == nil {
+			Order("submittedAt desc").Limit(1).Find(&s).Error; err == nil && s.ID != "" {
 			lastSubmission = &s
 		}
 	}
@@ -100,7 +99,7 @@ func (h *Handler) SubmitLab(c *gin.Context) {
 		Status:      "pending",
 		MaxScore:    lab.Points,
 		Score:       0,
-		SubmittedAt: time.Now(),
+		SubmittedAt: model.Now(),
 	}
 	if err := h.db.Create(&s).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Submit failed"})

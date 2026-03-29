@@ -131,9 +131,9 @@ func (h *Handler) AdminCreateUser(c *gin.Context) {
 		Password:     string(hashed),
 		Role:         role,
 		QQNumber:     req.QQNumber,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-		LastActiveAt: time.Now(),
+		CreatedAt:    model.Now(),
+		UpdatedAt:    model.Now(),
+		LastActiveAt: model.Now(),
 	}
 	if err := h.db.Create(&u).Error; err != nil {
 		c.JSON(http.StatusConflict, gin.H{"message": "Username or QQ number already exists"})
@@ -158,7 +158,7 @@ func (h *Handler) AdminUpdateUser(c *gin.Context) {
 		return
 	}
 
-	updates := map[string]any{"updatedAt": time.Now()}
+	updates := map[string]any{"updatedAt": model.Now()}
 	if req.Username != "" {
 		updates["username"] = req.Username
 		updates["email"] = req.Username + "@sparklab.local"
@@ -233,8 +233,8 @@ func (h *Handler) AdminCreateCourse(c *gin.Context) {
 		Difficulty:  req.Difficulty,
 		Duration:    req.Duration,
 		IsPublished: isPublished,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		CreatedAt:   model.Now(),
+		UpdatedAt:   model.Now(),
 	}
 	if err := h.db.Create(&course).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Create course failed"})
@@ -251,7 +251,7 @@ func (h *Handler) AdminUpdateCourse(c *gin.Context) {
 		return
 	}
 
-	updates := map[string]any{"updatedAt": time.Now()}
+	updates := map[string]any{"updatedAt": model.Now()}
 	if req.Title != "" {
 		updates["title"] = req.Title
 	}
@@ -374,8 +374,8 @@ func (h *Handler) AdminCreateLab(c *gin.Context) {
 		RestartPolicy:   restartPolicy,
 		JudgeType:       judgeType,
 		JudgeScript:     req.JudgeScript,
-		CreatedAt:       time.Now(),
-		UpdatedAt:       time.Now(),
+		CreatedAt:       model.Now(),
+		UpdatedAt:       model.Now(),
 	}
 
 	if err := h.db.Create(&lab).Error; err != nil {
@@ -394,7 +394,7 @@ func (h *Handler) AdminUpdateLab(c *gin.Context) {
 		return
 	}
 
-	updates := map[string]any{"updatedAt": time.Now()}
+	updates := map[string]any{"updatedAt": model.Now()}
 	if req.Title != "" {
 		updates["title"] = req.Title
 	}
@@ -445,6 +445,8 @@ func (h *Handler) AdminUpdateLab(c *gin.Context) {
 	if req.JudgeScript != nil {
 		updates["judgeScript"] = req.JudgeScript
 	}
+
+	updates["updatedAt"] = model.Now()
 
 	if err := h.db.Model(&model.Lab{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Update lab failed"})
